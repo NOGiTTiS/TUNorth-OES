@@ -1,0 +1,40 @@
+services:
+  # 1. ฐานข้อมูล PostgreSQL
+  db:
+    image: postgres:17-alpine
+    container_name: tunorth-oes_postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=tunorth_user
+      - POSTGRES_PASSWORD=tunorth_password
+      - POSTGRES_DB=tunorth-oes_db
+    ports:
+      - "5532:5432"
+    volumes:
+      - postgres-oes_data:/var/lib/postgresql/data
+
+  # 2. Redis สำหรับเก็บ Session/Cache
+  redis:
+    image: redis:alpine
+    container_name: tunorth-oes_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-oes_data:/data
+
+  # (แถม) pgAdmin สำหรับจัดการ Database ผ่านหน้าเว็บ (เข้าผ่าน http://localhost:5050)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: tunorth-oes_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@tunorth.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5550:80"
+    depends_on:
+      - db
+
+volumes:
+  postgres-oes_data:
+  redis-oes_data:

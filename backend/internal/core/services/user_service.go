@@ -1,0 +1,73 @@
+package services
+
+import (
+    "errors"
+    "time"
+
+    "github.com/golang-jwt/jwt/v5"
+    "github.com/nogittis/tunorth-oes-backend/internal/core/domain"
+    "github.com/nogittis/tunorth-oes-backend/internal/core/ports"
+    "golang.org/x/crypto/bcrypt"
+)
+
+type userService struct {
+    userRepo  ports.IUserRepository
+    jwtSecret string
+}
+
+// NewUserService คือฟังก์ชันสร้าง Service นี้ขึ้นมา
+func NewUserService(repo ports.IUserRepository, secret string) ports.IUserService {
+    return &userService{
+        userRepo:  repo,
+        jwtSecret: secret,
+    }
+}
+
+// Register: สมัครสมาชิก
+func (s *userService) Register(user *domain.User) error {
+    // 1. ตรวจสอบว่ามี username นี้หรือยัง (Optional: ขึ้นกับว่า Repo error หรือเปล่า แต่เช็คก่อนก็ดี)
+    existingUser, _ := s.userRepo.FindUserByUsername(user.Username)
+    if existingUser != nil {
+        return errors.New("username already exists")
+    }
+
+    // 2. Hash Password (แปลงรหัสผ่านเป็นภาษาต่างดาว เพื่อความปลอดภัย)
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+    if err != nil {
+        return err
+    }
+    user.Password = string(hashedPassword)
+
+    // 3. บันทึกลง Database
+    return s.userRepo.CreateUser(user)
+}
+
+// Login: เข้าสู่ระบบ
+func (s *userService) Login(username, password string) (string, error) {
+    // 1. ค้นหา user จาก database
+    user, err := s.userRepo.FindUserByUsername(username)
+    if err != nil {
+        return "", errors.New("invalid username or password")
+    }
+
+    // 2. ตรวจสอบรหัสผ่าน (เอาที่กรอกมา เทียบกับ Hash ใน DB)
+    err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+    if err != nil {
+        return "", errors.New("invalid username or password")
+    }
+
+    // 3. สร้าง JWT Token (บัตรผ่าน)
+    token := jwt.New(jwt.SigningMethodHS256)
+    claims := token.Claims.(jwt.MapClaims)
+    claims["user_id"] = user.ID
+    claims["username"] = user.Username
+    claims["role"] = user.Role
+    claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // หมดอายุใน 24 ชม.
+
+    t, err := token.SignedString([]byte(s.jwtSecret))
+    if err != nil {
+        return "", err
+    }
+
+    return t, nil
+}

@@ -1,0 +1,693 @@
+basePath: /api
+definitions:
+  github_com_nogittis_tunorth-oes-backend_internal_core_domain.Choice:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      id:
+        type: integer
+      is_correct:
+        description: เป็นคำตอบที่ถูกหรือไม่
+        type: boolean
+      question_id:
+        type: integer
+      updatedAt:
+        type: string
+    type: object
+  github_com_nogittis_tunorth-oes-backend_internal_core_domain.Exam:
+    properties:
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      description:
+        type: string
+      duration:
+        description: เวลาทำข้อสอบ (นาที)
+        example: 60
+        type: integer
+      end_time:
+        example: "2026-03-01T12:00:00Z"
+        type: string
+      id:
+        type: integer
+      questions:
+        description: 'Relation: ชุดนี้มีข้อสอบอะไรบ้าง'
+        items:
+          $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.Question'
+        type: array
+      start_time:
+        example: "2026-03-01T09:00:00Z"
+        type: string
+      subject_id:
+        type: integer
+      title:
+        example: สอบกลางภาค 2/2568
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  github_com_nogittis_tunorth-oes-backend_internal_core_domain.ExamAnswer:
+    properties:
+      attemptID:
+        type: integer
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      id:
+        type: integer
+      questionID:
+        type: integer
+      selectedChoiceID:
+        description: choice ที่นักเรียนเลือก
+        type: integer
+      updatedAt:
+        type: string
+    type: object
+  github_com_nogittis_tunorth-oes-backend_internal_core_domain.ExamAttempt:
+    properties:
+      answers:
+        description: 'Relation: ตอบข้อไหนไปบ้าง'
+        items:
+          $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.ExamAnswer'
+        type: array
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      end_time:
+        description: เวลาที่กดส่งข้อสอบ
+        type: string
+      exam:
+        $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.Exam'
+      exam_id:
+        type: integer
+      id:
+        type: integer
+      is_submitted:
+        type: boolean
+      max_score:
+        description: คะแนนเต็ม (จำนวนข้อ)
+        type: integer
+      score:
+        description: คะแนนรวมที่ได้
+        type: integer
+      start_time:
+        type: string
+      updatedAt:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  github_com_nogittis_tunorth-oes-backend_internal_core_domain.Question:
+    properties:
+      choices:
+        items:
+          $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.Choice'
+        type: array
+      content:
+        description: เนื้อหาโจทย์
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      difficulty:
+        description: 1=ง่าย, 2=กลาง, 3=ยาก
+        type: integer
+      id:
+        type: integer
+      subject_id:
+        description: ผูกกับวิชาไหน
+        type: integer
+      type:
+        $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.QuestionType'
+      updatedAt:
+        type: string
+    type: object
+  github_com_nogittis_tunorth-oes-backend_internal_core_domain.QuestionType:
+    enum:
+    - MCQ
+    type: string
+    x-enum-comments:
+      MCQ: ปรนัย (เลือกตอบ)
+    x-enum-descriptions:
+    - ปรนัย (เลือกตอบ)
+    x-enum-varnames:
+    - MCQ
+  github_com_nogittis_tunorth-oes-backend_internal_core_domain.Subject:
+    properties:
+      code:
+        description: รหัสวิชา (ห้ามซ้ำ)
+        example: MAT101
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      description:
+        description: คำอธิบาย
+        example: วิชาคณิตศาสตร์พื้นฐาน
+        type: string
+      id:
+        type: integer
+      is_active:
+        description: เปิดใช้งานหรือไม่
+        example: true
+        type: boolean
+      name:
+        description: ชื่อวิชา
+        example: Mathematics
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  github_com_nogittis_tunorth-oes-backend_internal_core_ports.SubmitAnswerRequest:
+    properties:
+      choice_id:
+        type: integer
+      question_id:
+        type: integer
+    type: object
+  gorm.DeletedAt:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
+  internal_adapters_handler.ChoiceRequest:
+    properties:
+      content:
+        type: string
+      is_correct:
+        type: boolean
+    type: object
+  internal_adapters_handler.CreateExamRequest:
+    properties:
+      description:
+        type: string
+      duration:
+        description: นาที
+        type: integer
+      end_time:
+        example: "2026-03-01T12:00:00+07:00"
+        type: string
+      question_ids:
+        description: รายการ ID ข้อสอบที่จะเอามาใส่
+        items:
+          type: integer
+        type: array
+      start_time:
+        description: รับเป็น String ISO8601
+        example: "2026-03-01T09:00:00+07:00"
+        type: string
+      subject_id:
+        type: integer
+      title:
+        type: string
+    type: object
+  internal_adapters_handler.CreateQuestionRequest:
+    properties:
+      choices:
+        items:
+          $ref: '#/definitions/internal_adapters_handler.ChoiceRequest'
+        type: array
+      content:
+        type: string
+      difficulty:
+        type: integer
+      subject_id:
+        type: integer
+    type: object
+  internal_adapters_handler.CreateSubjectRequest:
+    properties:
+      code:
+        example: MAT101
+        type: string
+      description:
+        example: Basic Math
+        type: string
+      name:
+        example: Mathematics
+        type: string
+    type: object
+  internal_adapters_handler.LoginRequest:
+    properties:
+      password:
+        example: pass1234
+        type: string
+      username:
+        example: student01
+        type: string
+    type: object
+  internal_adapters_handler.RegisterRequest:
+    properties:
+      first_name:
+        example: Somsak
+        type: string
+      last_name:
+        example: Rakrian
+        type: string
+      password:
+        example: pass1234
+        type: string
+      role:
+        description: admin, teacher, student
+        example: student
+        type: string
+      username:
+        example: student01
+        type: string
+    type: object
+host: localhost:8880
+info:
+  contact:
+    email: support@tunorth.ac.th
+    name: API Support
+  description: API สำหรับระบบจัดสอบออนไลน์ โรงเรียนเตรียมอุดมศึกษา ภาคเหนือ
+  title: TUNorth-OES API
+  version: "1.0"
+paths:
+  /attempts/history:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.ExamAttempt'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: ดูประวัติการสอบของฉัน
+      tags:
+      - Attempts
+  /attempts/start:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Exam ID
+        in: body
+        name: exam_id
+        required: true
+        schema:
+          properties:
+            exam_id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: เริ่มทำข้อสอบ
+      tags:
+      - Attempts
+  /attempts/submit:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: คำตอบ
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            ' answers':
+              items:
+                $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_ports.SubmitAnswerRequest'
+              type: array
+            attempt_id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: ส่งคำตอบ
+      tags:
+      - Attempts
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: ตรวจสอบ username/password และรับ JWT Token
+      parameters:
+      - description: ข้อมูลล็อคอิน
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_adapters_handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: เข้าสู่ระบบ
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: ลงทะเบียนผู้ใช้งานเข้าสู่ระบบ (Student, Teacher)
+      parameters:
+      - description: ข้อมูลสมัครสมาชิก
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_adapters_handler.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: สมัครสมาชิกใหม่
+      tags:
+      - Auth
+  /exams:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.Exam'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: ดูรายการชุดข้อสอบทั้งหมด
+      tags:
+      - Exams
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ข้อมูลชุดข้อสอบ
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_adapters_handler.CreateExamRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.Exam'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: สร้างชุดข้อสอบ
+      tags:
+      - Exams
+  /exams/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Exam ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.Exam'
+      security:
+      - ApiKeyAuth: []
+      summary: ดูรายละเอียดชุดข้อสอบ (รวมถึงตัวโจทย์)
+      tags:
+      - Exams
+  /questions:
+    post:
+      consumes:
+      - application/json
+      description: สร้างโจทย์พร้อมตัวเลือก
+      parameters:
+      - description: ข้อมูลโจทย์และตัวเลือก
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_adapters_handler.CreateQuestionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.Question'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: สร้างข้อสอบใหม่
+      tags:
+      - Questions
+  /questions/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Question ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: ลบข้อสอบ
+      tags:
+      - Questions
+  /questions/subject/{subjectId}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Subject ID
+        in: path
+        name: subjectId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.Question'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: ดึงข้อสอบตามวิชา
+      tags:
+      - Questions
+  /subjects:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.Subject'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: ดึงรายวิชาทั้งหมด
+      tags:
+      - Subjects
+    post:
+      consumes:
+      - application/json
+      description: เพิ่มรายวิชาเข้าสู่ระบบ
+      parameters:
+      - description: ข้อมูลวิชา
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_adapters_handler.CreateSubjectRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.Subject'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: สร้างรายวิชาใหม่
+      tags:
+      - Subjects
+  /subjects/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Subject ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: ลบรายวิชา
+      tags:
+      - Subjects
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Subject ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.Subject'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: ดึงรายละเอียดวิชาตาม ID
+      tags:
+      - Subjects
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Subject ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ข้อมูลที่ต้องการแก้ไข
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_adapters_handler.CreateSubjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: แก้ไขรายวิชา
+      tags:
+      - Subjects
+schemes:
+- http
+swagger: "2.0"
