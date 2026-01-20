@@ -1,61 +1,61 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { format } from "date-fns"
-import { th } from "date-fns/locale"
-import { Plus, Calendar, Clock, BookOpen, AlertCircle } from "lucide-react"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
+import { Plus, Calendar, Clock, BookOpen, AlertCircle } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { examService } from "@/services/exam.service"
-import { Exam } from "@/types/exam"
-import { toast } from "sonner"
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { examService } from "@/services/exam.service";
+import { Exam } from "@/types/exam";
+import { toast } from "sonner";
 
 export default function ExamListPage() {
-  const [exams, setExams] = useState<Exam[]>([])
-  const [loading, setLoading] = useState(true)
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchExams = async () => {
       try {
-        const data = await examService.getAll()
-        setExams(data)
+        const data = await examService.getAll();
+        setExams(data);
       } catch (error) {
-        console.error(error)
-        toast.error("ไม่สามารถโหลดรายการสอบได้")
+        console.error(error);
+        toast.error("ไม่สามารถโหลดรายการสอบได้");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchExams()
-  }, [])
+    fetchExams();
+  }, []);
 
   // ฟังก์ชันเช็คสถานะการสอบ
   const getExamStatus = (start: string, end: string) => {
-    const now = new Date()
-    const startDate = new Date(start)
-    const endDate = new Date(end)
+    const now = new Date();
+    const startDate = new Date(start);
+    const endDate = new Date(end);
 
     if (now > endDate) {
-      return { label: "จบแล้ว", color: "bg-gray-500 hover:bg-gray-600" }
+      return { label: "จบแล้ว", color: "bg-gray-500 hover:bg-gray-600" };
     } else if (now >= startDate && now <= endDate) {
       return {
         label: "กำลังดำเนินการ",
         color: "bg-green-600 hover:bg-green-700",
-      }
+      };
     } else {
-      return { label: "ยังไม่เริ่ม", color: "bg-blue-600 hover:bg-blue-700" }
+      return { label: "ยังไม่เริ่ม", color: "bg-blue-600 hover:bg-blue-700" };
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -89,7 +89,7 @@ export default function ExamListPage() {
           </div>
         ) : (
           exams.map((exam) => {
-            const status = getExamStatus(exam.start_time, exam.end_time)
+            const status = getExamStatus(exam.start_time, exam.end_time);
 
             return (
               <Card
@@ -128,18 +128,30 @@ export default function ExamListPage() {
                     <span>ข้อสอบ {exam.questions?.length || 0} ข้อ</span>
                   </div>
                 </CardContent>
-                <div className="p-4 pt-0 mt-4">
-                  <Link href={`/exam-room/${exam.ID}`}>
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                {/* ส่วน Footer ของการ์ด */}
+                <div className="p-4 pt-0 mt-auto flex gap-2">
+                  {/* ปุ่มเข้าห้องสอบ (สำหรับทดสอบ หรือให้นักเรียนกด) */}
+                  <Link href={`/exam-room/${exam.ID}`} className="flex-1">
+                    <Button variant="outline" className="w-full">
                       เข้าห้องสอบ
+                    </Button>
+                  </Link>
+
+                  {/* ปุ่มดูผลสอบ (สำหรับครู) - เพิ่มปุ่มนี้ครับ */}
+                  <Link
+                    href={`/dashboard/exams/${exam.ID}/results`}
+                    className="flex-1"
+                  >
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                      ดูผลสอบ
                     </Button>
                   </Link>
                 </div>
               </Card>
-            )
+            );
           })
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -112,3 +112,7 @@ func (s *attemptService) SubmitExam(attemptID uint, userAnswers []ports.SubmitAn
 func (s *attemptService) GetStudentHistory(userID uint) ([]domain.ExamAttempt, error) {
 	return s.attemptRepo.FindByUser(userID)
 }
+
+func (s *attemptService) GetExamResults(examID uint) ([]domain.ExamAttempt, error) {
+    return s.attemptRepo.FindByExamID(examID)
+}

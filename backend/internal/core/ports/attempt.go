@@ -12,6 +12,7 @@ type IAttemptService interface {
 	StartExam(userID, examID uint) (*domain.ExamAttempt, error)
 	SubmitExam(attemptID uint, answers []SubmitAnswerRequest) (*domain.ExamAttempt, error)
 	GetStudentHistory(userID uint) ([]domain.ExamAttempt, error)
+	GetExamResults(examID uint) ([]domain.ExamAttempt, error)
 }
 
 type IAttemptRepository interface {
@@ -21,4 +22,5 @@ type IAttemptRepository interface {
 	FindByUser(userID uint) ([]domain.ExamAttempt, error)
 	// ฟังก์ชันช่วยเช็คว่าสอบไปหรือยัง
 	FindActiveAttempt(userID, examID uint) (*domain.ExamAttempt, error)
+	FindByExamID(examID uint) ([]domain.ExamAttempt, error) 
 }

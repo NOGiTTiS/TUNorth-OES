@@ -275,6 +275,20 @@ info:
   title: TUNorth-OES API
   version: "1.0"
 paths:
+  /attempts/exam/{examId}:
+    get:
+      parameters:
+      - description: Exam ID
+        in: path
+        name: examId
+        required: true
+        type: integer
+      responses: {}
+      security:
+      - ApiKeyAuth: []
+      summary: ดูคะแนนสอบรายบุคคล (สำหรับครู)
+      tags:
+      - Reports
   /attempts/history:
     get:
       consumes:

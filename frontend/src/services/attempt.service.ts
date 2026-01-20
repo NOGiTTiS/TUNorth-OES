@@ -22,4 +22,10 @@ export const attemptService = {
     const response = await api.get<ExamAttempt[]>("/attempts/history");
     return response.data;
   },
+
+  // เพิ่มฟังก์ชันนี้เข้าไปครับ (สำหรับครูดูผลสอบ)
+  getExamResults: async (examId: number) => {
+    const response = await api.get<ExamAttempt[]>(`/attempts/exam/${examId}`);
+    return response.data;
+  },
 };

@@ -153,6 +153,7 @@ func main() {
 	attempts.Post("/start", attemptHandler.StartExam)
     attempts.Post("/submit", attemptHandler.SubmitExam)
     attempts.Get("/history", attemptHandler.GetHistory)
+	attempts.Get("/exam/:examId", attemptHandler.GetExamResults)
 
 	// Test Route
 	app.Get("/", func(c *fiber.Ctx) error {

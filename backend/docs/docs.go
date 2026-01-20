@@ -18,6 +18,29 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/attempts/exam/{examId}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "ดูคะแนนสอบรายบุคคล (สำหรับครู)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Exam ID",
+                        "name": "examId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
         "/attempts/history": {
             "get": {
                 "security": [

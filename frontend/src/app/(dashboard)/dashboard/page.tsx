@@ -2,12 +2,42 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FileText, CheckCircle } from "lucide-react";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function DashboardPage() {
+  const user = useAuthStore((state) => state.user);
+
+  // 1. วิวนักเรียน
+  if (user?.role === "student") {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+          สวัสดี, {user.username} 👋
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2">
+           <Card className="bg-blue-50 border-blue-200">
+              <CardHeader><CardTitle className="text-blue-900">การสอบที่กำลังมาถึง</CardTitle></CardHeader>
+              <CardContent>
+                 <p className="text-sm text-blue-700">ไม่มีการสอบเร็วๆ นี้</p>
+                 {/* อนาคตทำ API ดึง Upcoming Exam มาโชว์ตรงนี้ */}
+              </CardContent>
+           </Card>
+           <Card>
+              <CardHeader><CardTitle>ประวัติล่าสุด</CardTitle></CardHeader>
+              <CardContent>
+                 <p className="text-sm text-gray-500">ดูคะแนนย้อนหลังได้ที่เมนูประวัติ</p>
+              </CardContent>
+           </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. วิวครู/แอดมิน (อันเดิม)
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-        ภาพรวมระบบ
+        ภาพรวมระบบ ({user?.role})
       </h2>
 
       {/* การ์ดแสดงสถิติ (Mock Data) */}

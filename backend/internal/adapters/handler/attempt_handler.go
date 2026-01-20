@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"strconv"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gofiber/fiber/v2"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/domain"
@@ -104,4 +105,20 @@ func (h *AttemptHandler) GetHistory(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(history)
+}
+
+// GetExamResults godoc
+// @Summary      ดูคะแนนสอบรายบุคคล (สำหรับครู)
+// @Tags         Reports
+// @Param        examId   path      int  true  "Exam ID"
+// @Security     ApiKeyAuth
+// @Router       /attempts/exam/{examId} [get]
+func (h *AttemptHandler) GetExamResults(c *fiber.Ctx) error {
+    examID, _ := strconv.Atoi(c.Params("examId"))
+    // TODO: ควรเช็ค Role ว่าเป็น Teacher/Admin หรือไม่
+    results, err := h.service.GetExamResults(uint(examID))
+    if err != nil {
+         return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+    }
+    return c.JSON(results)
 }
