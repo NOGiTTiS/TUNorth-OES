@@ -31,6 +31,11 @@ type CreateQuestionRequest struct {
 	Choices    []ChoiceRequest `json:"choices"`
 }
 
+type BulkCreateQuestionRequest struct {
+    SubjectID uint                    `json:"subject_id"`
+    Questions []CreateQuestionRequest `json:"questions"` // ใช้ struct เดิมมาเป็น array
+}
+
 // CreateQuestion godoc
 // @Summary      สร้างข้อสอบใหม่
 // @Description  สร้างโจทย์พร้อมตัวเลือก
@@ -92,6 +97,48 @@ func (h *QuestionHandler) GetQuestionsBySubject(c *fiber.Ctx) error {
 	return c.JSON(questions)
 }
 
+// UpdateQuestion godoc
+// @Summary      แก้ไขข้อสอบ
+// @Tags         Questions
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "Question ID"
+// @Param        request body CreateQuestionRequest true "ข้อมูลข้อสอบใหม่"
+// @Security     ApiKeyAuth
+// @Success      200  {object} map[string]interface{}
+// @Router       /questions/{id} [put]
+func (h *QuestionHandler) UpdateQuestion(c *fiber.Ctx) error {
+	id, _ := strconv.Atoi(c.Params("id"))
+	req := new(CreateQuestionRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
+	}
+
+    // แปลง DTO เป็น Domain
+	choices := make([]domain.Choice, len(req.Choices))
+	for i, ch := range req.Choices {
+		choices[i] = domain.Choice{
+			Content:   ch.Content,
+			ImageURL:  ch.ImageURL,
+			IsCorrect: ch.IsCorrect,
+		}
+	}
+
+	question := domain.Question{
+		SubjectID:  req.SubjectID,
+		Content:    req.Content,
+		ImageURL:   req.ImageURL,
+		Difficulty: req.Difficulty,
+		Choices:    choices,
+	}
+
+	if err := h.service.UpdateQuestion(uint(id), &question); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "Question updated successfully"})
+}
+
 // DeleteQuestion godoc
 // @Summary      ลบข้อสอบ
 // @Tags         Questions
@@ -107,4 +154,51 @@ func (h *QuestionHandler) DeleteQuestion(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(fiber.Map{"message": "Question deleted successfully"})
+}
+
+// BulkCreateQuestions godoc
+// @Summary      นำเข้าข้อสอบหลายข้อ (Excel Import)
+// @Tags         Questions
+// @Accept       json
+// @Produce      json
+// @Param        request body BulkCreateQuestionRequest true "ข้อมูลข้อสอบหลายข้อ"
+// @Security     ApiKeyAuth
+// @Success      201  {object} map[string]interface{}
+// @Router       /questions/bulk [post]
+func (h *QuestionHandler) BulkCreateQuestions(c *fiber.Ctx) error {
+    req := new(BulkCreateQuestionRequest)
+    if err := c.BodyParser(req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
+    }
+
+    var questions []domain.Question
+    for _, qReq := range req.Questions {
+        // แปลง DTO เป็น Domain
+        choices := make([]domain.Choice, len(qReq.Choices))
+        for i, ch := range qReq.Choices {
+            choices[i] = domain.Choice{
+                Content:   ch.Content,
+                ImageURL:  ch.ImageURL,
+                IsCorrect: ch.IsCorrect,
+            }
+        }
+
+        questions = append(questions, domain.Question{
+            SubjectID:  req.SubjectID, // ใช้ Subject ID เดียวกันหมด
+            Content:    qReq.Content,
+            ImageURL:   qReq.ImageURL,
+            Type:       domain.MCQ,
+            Difficulty: qReq.Difficulty,
+            Choices:    choices,
+        })
+    }
+
+    if err := h.service.CreateQuestionsBulk(questions); err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+    }
+
+    return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+        "message": "Imported successfully",
+        "count":   len(questions),
+    })
 }

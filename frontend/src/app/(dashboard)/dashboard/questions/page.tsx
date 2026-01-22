@@ -1,84 +1,98 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Plus, Trash2, HelpCircle, CheckCircle2 } from "lucide-react"
-import { toast } from "sonner"
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { Plus, Trash2, HelpCircle, FileUp, Pencil, Image as ImageIcon, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
-import { Badge } from "@/components/ui/badge"
-import { QuestionDialog } from "@/components/features/questions/question-dialog"
-import { subjectService } from "@/services/subject.service"
-import { questionService } from "@/services/question.service"
-import { Subject } from "@/types/subject"
-import { Question } from "@/types/question"
-import { cn } from "@/lib/utils"
-import Image from "next/image"
+} from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+import { QuestionDialog } from "@/components/features/questions/question-dialog";
+import { ImportDialog } from "@/components/features/questions/import-dialog";
+import { subjectService } from "@/services/subject.service";
+import { questionService } from "@/services/question.service";
+import { Subject } from "@/types/subject";
+import { Question } from "@/types/question";
 
 export default function QuestionsPage() {
-  const [subjects, setSubjects] = useState<Subject[]>([])
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("")
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [loading, setLoading] = useState(false)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  // State ควบคุม Dialog
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
-  // โหลดรายชื่อวิชาตอนเข้ามาครั้งแรก
   useEffect(() => {
     const loadSubjects = async () => {
       try {
-        const data = await subjectService.getAll()
-        setSubjects(data)
+        const data = await subjectService.getAll();
+        setSubjects(data);
       } catch (error) {
-        toast.error("โหลดรายวิชาไม่สำเร็จ")
+        toast.error("โหลดรายวิชาไม่สำเร็จ");
       }
-    }
-    loadSubjects()
-  }, [])
+    };
+    loadSubjects();
+  }, []);
 
-  // โหลดข้อสอบเมื่อเลือกวิชา
   const fetchQuestions = async (subjectId: string) => {
-    if (!subjectId) return
-    setLoading(true)
+    if (!subjectId) return;
+    setLoading(true);
     try {
-      const data = await questionService.getBySubjectId(parseInt(subjectId))
-      setQuestions(data)
+      const data = await questionService.getBySubjectId(parseInt(subjectId));
+      setQuestions(data);
     } catch (error) {
-      toast.error("โหลดข้อสอบไม่สำเร็จ")
+      toast.error("โหลดข้อสอบไม่สำเร็จ");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (selectedSubjectId) {
-      fetchQuestions(selectedSubjectId)
+      fetchQuestions(selectedSubjectId);
     } else {
-      setQuestions([])
+      setQuestions([]);
     }
-  }, [selectedSubjectId])
+  }, [selectedSubjectId]);
+
+  const handleCreate = () => {
+    setEditingQuestion(null);
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (q: Question) => {
+    setEditingQuestion(q);
+    setDialogOpen(true);
+  };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("คุณต้องการลบข้อสอบข้อนี้ใช่หรือไม่?")) return
+    if (!confirm("คุณต้องการลบข้อสอบข้อนี้ใช่หรือไม่?")) return;
     try {
-      await questionService.delete(id)
-      toast.success("ลบข้อสอบสำเร็จ")
-      fetchQuestions(selectedSubjectId) // Reload
+      await questionService.delete(id);
+      toast.success("ลบข้อสอบสำเร็จ");
+      fetchQuestions(selectedSubjectId);
     } catch (error) {
-      toast.error("ลบข้อสอบไม่สำเร็จ")
+      toast.error("ลบข้อสอบไม่สำเร็จ");
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -87,15 +101,30 @@ export default function QuestionsPage() {
           <h2 className="text-2xl font-bold tracking-tight text-gray-900">
             คลังข้อสอบ
           </h2>
-          <p className="text-gray-500">เลือกรายวิชาเพื่อจัดการข้อสอบในคลัง</p>
+          <p className="text-gray-500">
+            เลือกรายวิชา เพื่อจัดการ เพิ่ม/ลบ/แก้ไข ข้อสอบในคลัง
+          </p>
         </div>
-        <Button
-          onClick={() => setDialogOpen(true)}
-          disabled={!selectedSubjectId} // ห้ามกดถ้ายังไม่เลือกวิชา
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="mr-2 h-4 w-4" /> เพิ่มข้อสอบ
-        </Button>
+        
+        <div className="flex gap-2">
+            {/* ปุ่มนำเข้า Excel */}
+            <Button 
+                variant="outline"
+                onClick={() => setImportDialogOpen(true)}
+                disabled={!selectedSubjectId}
+            >
+                <FileUp className="mr-2 h-4 w-4" /> นำเข้า Excel
+            </Button>
+
+            {/* ปุ่มเพิ่มข้อสอบ */}
+            <Button 
+                onClick={handleCreate} 
+                disabled={!selectedSubjectId}
+                className="bg-blue-600 hover:bg-blue-700"
+            >
+                <Plus className="mr-2 h-4 w-4" /> เพิ่มข้อสอบ
+            </Button>
+        </div>
       </div>
 
       {/* Dropdown เลือกวิชา */}
@@ -119,7 +148,7 @@ export default function QuestionsPage() {
         {!selectedSubjectId ? (
           <div className="flex flex-col items-center justify-center h-48 text-gray-400">
             <HelpCircle className="h-10 w-10 mb-2" />
-            <p>กรุณาเลือกรายวิชาเพื่อดูข้อสอบ</p>
+            <p>กรุณาเลือกรายวิชาด้านบนเพื่อจัดการ</p>
           </div>
         ) : loading ? (
           <div className="text-center py-10">กำลังโหลดข้อสอบ...</div>
@@ -132,93 +161,86 @@ export default function QuestionsPage() {
             {questions.map((q, index) => (
               <AccordionItem key={q.ID} value={q.ID.toString()}>
                 <AccordionTrigger className="hover:no-underline px-2">
-                  <div className="flex items-center gap-4 text-left">
-                    <span className="font-bold text-blue-600">
-                      #{index + 1}
-                    </span>
-                    <span className="line-clamp-1">{q.content}</span>
-                    <Badge
-                      variant={
-                        q.difficulty === 1
-                          ? "secondary"
-                          : q.difficulty === 2
-                            ? "default"
-                            : "destructive"
-                      }
-                    >
-                      {q.difficulty === 1
-                        ? "ง่าย"
-                        : q.difficulty === 2
-                          ? "ปานกลาง"
-                          : "ยาก"}
+                  <div className="flex items-center gap-4 text-left w-full">
+                    <span className="font-bold text-blue-600">#{index + 1}</span>
+                    <span className="line-clamp-1 flex-1">{q.content}</span>
+                    
+                    {/* ไอคอนรูปภาพ (ถ้ามีรูป) */}
+                    {(q.image_url || q.choices.some(c => c.image_url)) && (
+                        <ImageIcon className="h-4 w-4 text-blue-500 mr-2" />
+                    )}
+
+                    <Badge variant={q.difficulty === 1 ? "secondary" : q.difficulty === 2 ? "default" : "destructive"}>
+                      {q.difficulty === 1 ? "ง่าย" : q.difficulty === 2 ? "ปานกลาง" : "ยาก"}
                     </Badge>
                   </div>
                 </AccordionTrigger>
+                
                 <AccordionContent className="bg-slate-50 p-4 rounded-md">
-                  <div className="space-y-2">
-                    <div className="flex flex-col gap-4 mb-4">
-                      {/* แสดงโจทย์ */}
-                      <p className="font-medium text-lg">{q.content}</p>
-
-                      {/* 2. เพิ่มส่วนแสดงรูปโจทย์ ตรงนี้ครับ */}
-                      {q.image_url && (
-                        <div className="relative h-60 w-full max-w-md rounded-lg overflow-hidden border bg-white">
-                          <Image
-                            src={q.image_url}
-                            alt="Question Image"
-                            fill
-                            className="object-contain"
-                          />
-                        </div>
-                      )}
+                  <div className="space-y-4">
+                    {/* ส่วนแสดงโจทย์ */}
+                    <div className="flex flex-col gap-4">
+                        <p className="font-medium text-lg">{q.content}</p>
+                        {q.image_url && (
+                            <div className="relative h-60 w-full max-w-md rounded-lg overflow-hidden border bg-white shadow-sm">
+                                <Image 
+                                    src={q.image_url} 
+                                    alt="Question Image" 
+                                    fill 
+                                    className="object-contain" 
+                                />
+                            </div>
+                        )}
                     </div>
 
+                    {/* ส่วนแสดงตัวเลือก */}
                     <div className="grid gap-2">
                       {q.choices.map((choice) => (
-                        <div
-                          key={choice.ID}
+                        <div 
+                          key={choice.ID} 
                           className={cn(
-                            "p-3 rounded border flex items-center gap-3", // เปลี่ยน items-center เป็น items-start ถ้ามีรูปใหญ่
-                            choice.is_correct
-                              ? "bg-green-50 border-green-200"
-                              : "bg-white",
+                            "p-3 rounded border flex items-start gap-3",
+                            choice.is_correct ? "bg-green-50 border-green-200" : "bg-white"
                           )}
                         >
                           {choice.is_correct ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                            <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-1" />
                           ) : (
-                            <div className="h-5 w-5 rounded-full border border-gray-300 shrink-0" />
+                            <div className="h-5 w-5 rounded-full border border-gray-300 shrink-0 mt-1" />
                           )}
-
+                          
                           <div className="flex flex-col gap-2 w-full">
-                            <span
-                              className={cn(
-                                choice.is_correct &&
-                                  "font-medium text-green-700",
+                              <span className={cn(choice.is_correct && "font-medium text-green-700")}>
+                                {choice.content}
+                              </span>
+                              {choice.image_url && (
+                                <div className="relative h-32 w-32 rounded-md overflow-hidden border">
+                                    <Image 
+                                        src={choice.image_url} 
+                                        alt="Choice Image" 
+                                        fill 
+                                        className="object-cover" 
+                                    />
+                                </div>
                               )}
-                            >
-                              {choice.content}
-                            </span>
-
-                            {/* 3. เพิ่มส่วนแสดงรูปตัวเลือก ตรงนี้ครับ */}
-                            {choice.image_url && (
-                              <div className="relative h-32 w-32 rounded-md overflow-hidden border">
-                                <Image
-                                  src={choice.image_url}
-                                  alt="Choice Image"
-                                  fill
-                                  className="object-cover"
-                                />
-                              </div>
-                            )}
                           </div>
                         </div>
                       ))}
                     </div>
-                    <div className="flex justify-end pt-4">
-                      <Button
-                        variant="destructive"
-                        size="sm"
+
+                    {/* ปุ่มจัดการ Edit/Delete */}
+                    <div className="flex justify-end pt-4 gap-2 border-t mt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleEdit(q)}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" /> แก้ไข
+                      </Button>
+
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
                         onClick={() => handleDelete(q.ID)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" /> ลบข้อสอบ
@@ -232,12 +254,22 @@ export default function QuestionsPage() {
         )}
       </div>
 
-      <QuestionDialog
-        open={dialogOpen}
+      {/* Dialog สร้าง/แก้ไข */}
+      <QuestionDialog 
+        open={dialogOpen} 
         onOpenChange={setDialogOpen}
+        subjectId={parseInt(selectedSubjectId)}
+        onSuccess={() => fetchQuestions(selectedSubjectId)}
+        questionToEdit={editingQuestion}
+      />
+
+      {/* Dialog นำเข้า Excel */}
+      <ImportDialog 
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
         subjectId={parseInt(selectedSubjectId)}
         onSuccess={() => fetchQuestions(selectedSubjectId)}
       />
     </div>
-  )
+  );
 }

@@ -143,7 +143,9 @@ func main() {
 	questions.Use(jwtMiddleware)
 	questions.Post("/", questionHandler.CreateQuestion)
 	questions.Get("/subject/:subjectId", questionHandler.GetQuestionsBySubject)
+	questions.Put("/:id", questionHandler.UpdateQuestion)
 	questions.Delete("/:id", questionHandler.DeleteQuestion)
+	questions.Post("/bulk", questionHandler.BulkCreateQuestions)
 
 	// Exam Routes
     exams := api.Group("/exams")
