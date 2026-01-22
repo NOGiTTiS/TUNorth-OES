@@ -37,7 +37,7 @@ export function Sidebar({ className }: SidebarProps) {
     },
     {
       title: "การสอบของฉัน", // เมนูใหม่
-      href: "/dashboard/student/exams",
+      href: "/dashboard/students/exams",
       icon: PenTool,
       roles: ["student"], // เฉพาะนักเรียน
     },

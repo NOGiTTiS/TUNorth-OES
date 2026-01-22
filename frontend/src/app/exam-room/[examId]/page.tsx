@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useRef, use } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { Loader2, Clock, CheckCircle } from "lucide-react"
-import { addMinutes, differenceInSeconds, format } from "date-fns"
+import { useEffect, useState, useRef, use, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Loader2, Clock, CheckCircle, Lock, AlertOctagon } from "lucide-react";
+import { addMinutes, differenceInSeconds } from "date-fns";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,189 +19,248 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 
-import { examService } from "@/services/exam.service"
-import { attemptService } from "@/services/attempt.service"
-import { Exam } from "@/types/exam"
-import { ExamAttempt, ExamAnswer } from "@/types/attempt"
-import Image from "next/image"
+import { examService } from "@/services/exam.service";
+import { attemptService } from "@/services/attempt.service";
+import { Exam } from "@/types/exam";
+import { ExamAttempt, ExamAnswer } from "@/types/attempt";
+
+// Utility: Shuffle
+function shuffleArray<T>(array: T[]): T[] {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
 
 interface PageProps {
-  // 2. แก้ Type ให้เป็น Promise
-  params: Promise<{
-    examId: string
-  }>
+  params: Promise<{ examId: string }>;
 }
 
 export default function ExamRoomPage({ params }: PageProps) {
-  const router = useRouter()
-  // 3. ใช้ use() เพื่อดึงค่าจาก Promise
-  const resolvedParams = use(params)
-  const examId = parseInt(resolvedParams.examId)
+  const router = useRouter();
+  const resolvedParams = use(params);
+  const examId = parseInt(resolvedParams.examId);
 
-  const [loading, setLoading] = useState(true)
-  const [exam, setExam] = useState<Exam | null>(null)
-  const [attempt, setAttempt] = useState<ExamAttempt | null>(null)
+  const [loading, setLoading] = useState(true);
+  const [exam, setExam] = useState<Exam | null>(null);
+  const [attempt, setAttempt] = useState<ExamAttempt | null>(null);
+  
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [result, setResult] = useState<{ score: number; max: number } | null>(null);
 
-  // State เก็บคำตอบ: { question_id: choice_id }
-  const [answers, setAnswers] = useState<Record<number, number>>({})
+  // State ป้องกันการโกง
+  const [cheatCount, setCheatCount] = useState(0);
+  const [showWarning, setShowWarning] = useState(false); // เตือนครั้งที่ 1-2
+  const [isBanned, setIsBanned] = useState(false);     // โดนแบนครั้งที่ 3
 
-  // Timer State
-  const [timeLeft, setTimeLeft] = useState<number | null>(null)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  // Refs: ใช้เก็บค่าล่าสุดเสมอ เพื่อให้ Event Listener มองเห็นค่าปัจจุบัน (แก้ปัญหา State ไม่อัปเดต)
+  const answersRef = useRef<Record<number, number>>({});
+  const attemptRef = useRef<ExamAttempt | null>(null);
+  const cheatCountRef = useRef(0);
 
-  // Result Dialog State
-  const [result, setResult] = useState<{ score: number; max: number } | null>(
-    null,
-  )
+  const STORAGE_KEY_ANSWERS = `exam_${examId}_answers`;
+  const STORAGE_KEY_CHEAT = `exam_${examId}_cheat_count`;
 
-  // เพิ่ม State สำหรับนับจำนวนครั้งที่โกง
-  const [cheatCount, setCheatCount] = useState(0)
+  // อัปเดต Refs เมื่อ State เปลี่ยน
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => { attemptRef.current = attempt; }, [attempt]);
+  useEffect(() => { cheatCountRef.current = cheatCount; }, [cheatCount]);
 
-  // 1. Initial Load: ดึงข้อมูลสอบ และ เริ่ม Start Attempt
+  // ฟังก์ชันส่งข้อสอบ (ย้ายมาไว้ข้างบน และใช้ useCallback เพื่อให้เรียกใช้ได้ทั่วถึง)
+  const handleSubmit = useCallback(async (isAuto = false) => {
+    const currentAttempt = attemptRef.current;
+    const currentAnswers = answersRef.current;
+
+    if (!currentAttempt) return;
+    
+    // เตรียมข้อมูลส่ง
+    const answerList: ExamAnswer[] = Object.entries(currentAnswers).map(([qId, cId]) => ({
+      question_id: parseInt(qId),
+      choice_id: cId,
+    }));
+
+    try {
+      setLoading(true);
+      const res = await attemptService.submit(currentAttempt.ID, answerList);
+      
+      if (timerRef.current) clearInterval(timerRef.current);
+
+      if (isAuto) {
+        // แจ้งเตือนตามสาเหตุ
+        if (cheatCountRef.current >= 3) {
+            toast.error("ส่งข้อสอบอัตโนมัติเนื่องจากทำผิดกฎการสอบ");
+        } else {
+            toast.warning("หมดเวลาสอบ ระบบส่งคำตอบอัตโนมัติ");
+        }
+      } else {
+        toast.success("ส่งข้อสอบเรียบร้อยแล้ว");
+      }
+
+      setResult({ score: res.score, max: res.max_score });
+      
+      // Cleanup
+      localStorage.removeItem(STORAGE_KEY_ANSWERS);
+      localStorage.removeItem(STORAGE_KEY_CHEAT);
+
+      setLoading(false);
+      setShowWarning(false);
+      setIsBanned(false);
+
+    } catch (error) {
+      toast.error("การส่งข้อสอบขัดข้อง กรุณากดส่งใหม่อีกครั้ง");
+      setLoading(false);
+    }
+  }, [examId, STORAGE_KEY_ANSWERS, STORAGE_KEY_CHEAT]); // Dependencies
+
+  // 1. Initial Load
   useEffect(() => {
     const initExam = async () => {
       try {
-        if (isNaN(examId)) return
+        if (isNaN(examId)) return;
 
-        const examData = await examService.getById(examId)
-        setExam(examData)
+        const savedAnswers = localStorage.getItem(STORAGE_KEY_ANSWERS);
+        if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
 
-        const attemptData = await attemptService.start(examId)
-        setAttempt(attemptData)
+        const savedCheat = localStorage.getItem(STORAGE_KEY_CHEAT);
+        if (savedCheat) {
+            const count = parseInt(savedCheat);
+            setCheatCount(count);
+            // ถ้าโหลดมาแล้วพบว่าเคยโกงครบ 3 ครั้ง ให้แบนทันที
+            if (count >= 3) setIsBanned(true);
+        }
 
-        // --- เพิ่มท่อนนี้ครับ ---
-        // ถ้าสอบเสร็จไปแล้ว (is_submitted = true) ให้โชว์คะแนนเลย ไม่ต้องจับเวลา
+        const examData = await examService.getById(examId);
+        const attemptData = await attemptService.start(examId);
+
+        // Randomize
+        if (examData.questions) {
+            examData.questions = shuffleArray(examData.questions);
+            examData.questions.forEach(q => {
+                if (q.choices) q.choices = shuffleArray(q.choices);
+            });
+        }
+
+        setExam(examData);
+        setAttempt(attemptData);
+
         if (attemptData.is_submitted) {
-          setResult({ score: attemptData.score, max: attemptData.max_score })
-          setLoading(false)
-          return // จบการทำงาน ไม่ต้องไปตั้งเวลาต่อ
+            setResult({ score: attemptData.score, max: attemptData.max_score });
+            setLoading(false);
+            return;
         }
 
-        // 1.3 คำนวณเวลาหมด
-        // StartTime จาก DB + Duration ของข้อสอบ
-        const startTime = new Date(attemptData.start_time)
-        const endTime = addMinutes(startTime, examData.duration)
+        // ถ้าเข้ามาแล้วพบว่าโดนแบนอยู่ ให้บังคับส่งเลย
+        if (cheatCountRef.current >= 3) {
+            handleSubmit(true);
+            return;
+        }
 
-        // เริ่มเดินเวลา
+        const startTime = new Date(attemptData.start_time);
+        const endTime = addMinutes(startTime, examData.duration);
+        
         const updateTimer = () => {
-          const now = new Date()
-          const diff = differenceInSeconds(endTime, now)
+          const now = new Date();
+          const diff = differenceInSeconds(endTime, now);
           if (diff <= 0) {
-            setTimeLeft(0)
-            handleSubmit(true) // หมดเวลา -> ส่งทันที
-            if (timerRef.current) clearInterval(timerRef.current)
+            setTimeLeft(0);
+            handleSubmit(true);
+            if (timerRef.current) clearInterval(timerRef.current);
           } else {
-            setTimeLeft(diff)
+            setTimeLeft(diff);
           }
-        }
+        };
 
-        updateTimer() // รันครั้งแรกทันที
-        timerRef.current = setInterval(updateTimer, 1000) // รันทุกวินาที
+        updateTimer();
+        timerRef.current = setInterval(updateTimer, 1000);
+
       } catch (error) {
-        toast.error("เกิดข้อผิดพลาดในการโหลดข้อสอบ")
-        router.push("/dashboard/exams") // ดีดกลับถ้ามีปัญหา
+        toast.error("เกิดข้อผิดพลาดในการโหลดข้อสอบ");
+        router.push("/dashboard/students/exams");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    initExam()
+    initExam();
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-  }, [examId, router])
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examId, router]); 
 
+  // 2. Anti-Cheating (แก้ไขใหม่ใช้ Refs)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // ถ้านักเรียนสลับจอ หรือพับหน้าจอ
-        setCheatCount((prev) => prev + 1)
-        toast.error("คำเตือน! กรุณาอย่าออกจากหน้าสอบ", {
-          description: "ระบบได้บันทึกพฤติกรรมของท่านไว้แล้ว",
-          duration: 5000,
-        })
+        // เพิ่มจำนวนครั้ง
+        const newCount = cheatCountRef.current + 1;
+        setCheatCount(newCount);
+        localStorage.setItem(STORAGE_KEY_CHEAT, newCount.toString());
 
-        // (Optional) ถ้าโกงเกิน 3 ครั้ง อาจจะบังคับส่งข้อสอบเลยก็ได้
-        if (cheatCount >= 3) handleSubmit(true)
+        if (newCount >= 3) {
+            // ครบ 3 ครั้ง -> แบนและบังคับส่ง
+            setIsBanned(true);
+            handleSubmit(true); // เรียก Submit ทันที
+        } else {
+            // ยังไม่ครบ -> แสดงเตือน
+            setShowWarning(true);
+        }
       }
-    }
+    };
 
-    // ป้องกันการคลิกขวา (Optional)
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault()
-    }
-
-    document.addEventListener("visibilitychange", handleVisibilityChange)
-    document.addEventListener("contextmenu", handleContextMenu)
+    // ป้องกันคลิกขวา/ก็อปปี้
+    const preventDefault = (e: Event) => e.preventDefault();
+    document.addEventListener("contextmenu", preventDefault);
+    document.addEventListener("copy", preventDefault);
+    document.addEventListener("cut", preventDefault);
+    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange)
-      document.removeEventListener("contextmenu", handleContextMenu)
-    }
-  }, [])
+      document.removeEventListener("contextmenu", preventDefault);
+      document.removeEventListener("copy", preventDefault);
+      document.removeEventListener("cut", preventDefault);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [handleSubmit, STORAGE_KEY_CHEAT]);
 
-  // ฟังก์ชันเลือกคำตอบ
+  // Handle Answer Selection
   const handleSelectAnswer = (qId: number, cId: number) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [qId]: cId,
-    }))
-  }
+    if (isBanned || loading) return;
 
-  // ฟังก์ชันส่งข้อสอบ
-  const handleSubmit = async (isAuto = false) => {
-    if (!attempt || !exam) return
+    setAnswers((prev) => {
+        const newAnswers = { ...prev, [qId]: cId };
+        localStorage.setItem(STORAGE_KEY_ANSWERS, JSON.stringify(newAnswers));
+        return newAnswers;
+    });
+  };
 
-    const answerList: ExamAnswer[] = Object.entries(answers).map(
-      ([qId, cId]) => ({
-        question_id: parseInt(qId),
-        choice_id: cId,
-      }),
-    )
-
-    try {
-      setLoading(true) // เริ่มโหลด
-      const res = await attemptService.submit(attempt.ID, answerList)
-
-      if (timerRef.current) clearInterval(timerRef.current)
-
-      if (isAuto) {
-        toast.warning("หมดเวลาสอบ! ระบบส่งคำตอบอัตโนมัติ")
-      } else {
-        toast.success("ส่งข้อสอบเรียบร้อยแล้ว")
-      }
-
-      setResult({ score: res.score, max: res.max_score })
-
-      // --- เพิ่มบรรทัดนี้ครับ !!! ---
-      setLoading(false) // หยุดโหลด เพื่อให้ UI ไปโชว์หน้า Result
-      // --------------------------
-    } catch (error) {
-      toast.error("ส่งข้อสอบไม่สำเร็จ กรุณาลองใหม่")
-      setLoading(false) // ใน catch มีอยู่แล้ว
-    }
-  }
-
-  // Format เวลาเป็น MM:SS
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-    const s = seconds % 60
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
-  }
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  // --- UI ---
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="h-10 w-10 animate-spin text-blue-600 mb-4" />
-        <p className="text-gray-500">กำลังเตรียมห้องสอบ...</p>
+        <p className="text-gray-500">
+            {isBanned ? "กำลังส่งข้อสอบและบันทึกการทุจริต..." : "กำลังประมวลผล..."}
+        </p>
       </div>
-    )
+    );
   }
 
-  // ถ้าส่งแล้ว ให้โชว์ Dialog ผลสอบ
   if (result) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
@@ -210,90 +269,117 @@ export default function ExamRoomPage({ params }: PageProps) {
         <Card className="w-full max-w-md text-center p-6">
           <p className="text-gray-500 mb-2">คะแนนของคุณ</p>
           <div className="text-6xl font-bold text-blue-600 mb-4">
-            {result.score}{" "}
-            <span className="text-2xl text-gray-400">/ {result.max}</span>
+            {result.score} <span className="text-2xl text-gray-400">/ {result.max}</span>
           </div>
-          <Button
-            className="w-full"
-            onClick={() => router.push("/dashboard/exams")} // กลับหน้า Dashboard
-          >
+          {cheatCount > 0 && (
+             <div className="text-red-500 text-sm mt-4 bg-red-50 p-2 rounded border border-red-100">
+                หมายเหตุ: ตรวจพบการสลับหน้าจอ {cheatCount} ครั้ง
+             </div>
+          )}
+          <Button className="w-full mt-4" onClick={() => router.push("/dashboard/students/exams")}>
             กลับสู่หน้าหลัก
           </Button>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 relative">
-      {/* ฝั่งซ้าย: ข้อสอบ */}
+    <div className={`flex flex-col lg:flex-row gap-6 relative select-none ${isBanned ? 'pointer-events-none opacity-50' : ''}`}>
+      
+      {/* Alert 1: เตือนเมื่อสลับหน้าจอ (ครั้งที่ 1-2) */}
+      <AlertDialog open={showWarning && !isBanned}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <div className="flex flex-col items-center gap-4 mb-4">
+                    <div className="h-16 w-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <Lock className="h-8 w-8 text-yellow-600" />
+                    </div>
+                    <AlertDialogTitle className="text-xl text-yellow-700">คำเตือนพฤติกรรม!</AlertDialogTitle>
+                </div>
+                <AlertDialogDescription className="text-center text-gray-600">
+                    ตรวจพบการออกจากหน้าสอบหรือสลับหน้าจอ <br/>
+                    <span className="font-bold text-black mt-2 block text-lg">
+                        ครั้งที่ {cheatCount} / 3
+                    </span>
+                    <br/>
+                    หากครบ 3 ครั้ง ระบบจะ <span className="text-red-600 font-bold">ปรับตกและส่งข้อสอบทันที</span>
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="sm:justify-center">
+                <AlertDialogAction onClick={() => setShowWarning(false)} className="bg-yellow-600 hover:bg-yellow-700 w-full sm:w-auto px-8">
+                    รับทราบและกลับสู่การสอบ
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert 2: โดนแบน (ครั้งที่ 3) - ปิดไม่ได้ */}
+      <AlertDialog open={isBanned}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <div className="flex flex-col items-center gap-4 mb-4">
+                    <div className="h-16 w-16 bg-red-100 rounded-full flex items-center justify-center">
+                        <AlertOctagon className="h-8 w-8 text-red-600" />
+                    </div>
+                    <AlertDialogTitle className="text-2xl text-red-600">ยุติการสอบ!</AlertDialogTitle>
+                </div>
+                <AlertDialogDescription className="text-center text-gray-600">
+                    คุณทำผิดกฎการสอบ (สลับหน้าจอเกินกำหนด) <br/>
+                    ระบบกำลังบันทึกคำตอบและยุติการสอบของคุณทันที
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="sm:justify-center">
+                {/* ปุ่มนี้เผื่อ Auto Submit ไม่ทำงาน หรือเน็ตค้าง */}
+                <Button 
+                    onClick={() => handleSubmit(true)} 
+                    disabled={loading}
+                    className="bg-red-600 hover:bg-red-700 w-full"
+                >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : null}
+                    ยืนยันส่งข้อสอบ
+                </Button>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex-1 space-y-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">{exam?.title}</h1>
-          <p className="text-gray-500">{exam?.description}</p>
+            <h1 className="text-2xl font-bold">{exam?.title}</h1>
+            <p className="text-gray-500">{exam?.description}</p>
         </div>
 
         {exam?.questions?.map((q, index) => (
           <Card key={q.ID} id={`q-${q.ID}`}>
             <CardHeader>
               <CardTitle className="text-lg flex flex-col gap-3">
-                <div className="flex gap-3">
-                  <span className="bg-blue-100 text-blue-800 w-8 h-8 flex items-center justify-center rounded-full text-sm shrink-0">
-                    {index + 1}
-                  </span>
-                  <span>{q.content}</span>
-                </div>
-                {/* แสดงรูปโจทย์ */}
-                {q.image_url && (
-                  <div className="ml-11 relative h-60 w-full max-w-md rounded-lg overflow-hidden border">
-                    <Image
-                      src={q.image_url}
-                      alt="Question Image"
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                )}
+                 <div className="flex gap-3">
+                    <span className="bg-blue-100 text-blue-800 w-8 h-8 flex items-center justify-center rounded-full text-sm shrink-0">
+                      {index + 1}
+                    </span>
+                    <span>{q.content}</span>
+                 </div>
+                 {/* ... Image ... */}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <RadioGroup
-                // แก้จุดที่ 1: เพิ่ม ?? "" เพื่อกันค่า undefined
-                value={answers[q.ID]?.toString() ?? ""}
+              <RadioGroup 
+                value={answers[q.ID]?.toString() ?? ""} 
                 onValueChange={(val) => handleSelectAnswer(q.ID, parseInt(val))}
               >
                 {q.choices.map((c) => (
-                  <div
-                    key={c.ID}
-                    // แก้จุดที่ 2: เพิ่ม onClick ที่ div ครอบ เพื่อให้คลิกง่ายขึ้น (คลิกตรงไหนในกรอบก็ได้)
+                  <div 
+                    key={c.ID} 
                     onClick={() => handleSelectAnswer(q.ID, c.ID!)}
-                    className={`flex items-center space-x-2 border p-3 rounded-lg cursor-pointer transition-colors ${
-                      // เพิ่มลูกเล่น: ถ้าเลือกข้อนี้อยู่ ให้เปลี่ยนสีพื้นหลังเป็นสีฟ้าอ่อน
-                      answers[q.ID] === c.ID
-                        ? "bg-blue-50 border-blue-300"
-                        : "hover:bg-slate-50"
+                    className={`flex items-start space-x-2 border p-3 rounded-lg cursor-pointer transition-colors ${
+                      answers[q.ID] === c.ID ? 'bg-blue-50 border-blue-300' : 'hover:bg-slate-50'
                     }`}
                   >
-                    <RadioGroupItem value={c.ID!.toString()} id={`c-${c.ID}`} />
-                    <div className="flex-1 cursor-pointer">
-                      {/* เพิ่ม cursor-pointer ให้ label ด้วย */}
-                      <Label
-                        htmlFor={`c-${c.ID}`}
-                        className="flex-1 cursor-pointer font-normal"
-                      >
-                        {c.content}
-                      </Label>
-                      {/* แสดงรูปตัวเลือก */}
-                      {c.image_url && (
-                        <div className="mt-2 relative h-32 w-32 rounded-md overflow-hidden border">
-                          <Image
-                            src={c.image_url}
-                            alt="Choice Image"
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      )}
+                    <RadioGroupItem value={c.ID!.toString()} id={`c-${c.ID}`} className="mt-1" />
+                    <div className="flex-1">
+                        <Label htmlFor={`c-${c.ID}`} className="cursor-pointer font-normal block leading-relaxed">
+                          {c.content}
+                        </Label>
                     </div>
                   </div>
                 ))}
@@ -303,25 +389,20 @@ export default function ExamRoomPage({ params }: PageProps) {
         ))}
       </div>
 
-      {/* ฝั่งขวา: แถบเครื่องมือ (Sticky) */}
       <div className="lg:w-72 hidden lg:block">
         <div className="sticky top-6 space-y-4">
-          {/* Timer Card */}
           <Card className="border-blue-200 bg-blue-50">
             <CardContent className="pt-6 text-center">
               <div className="flex items-center justify-center gap-2 text-blue-800 mb-2">
                 <Clock className="h-5 w-5" />
                 <span className="font-semibold">เวลาที่เหลือ</span>
               </div>
-              <div
-                className={`text-4xl font-mono font-bold ${timeLeft! < 60 ? "text-red-600 animate-pulse" : "text-gray-800"}`}
-              >
+              <div className={`text-4xl font-mono font-bold ${timeLeft! < 60 ? 'text-red-600 animate-pulse' : 'text-gray-800'}`}>
                 {timeLeft !== null ? formatTime(timeLeft) : "--:--"}
               </div>
             </CardContent>
           </Card>
 
-          {/* Progress Card */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">สถานะการทำ</CardTitle>
@@ -331,22 +412,14 @@ export default function ExamRoomPage({ params }: PageProps) {
                 <span>ทำไปแล้ว {Object.keys(answers).length} ข้อ</span>
                 <span>จาก {exam?.questions?.length} ข้อ</span>
               </div>
-              <Progress
-                value={
-                  (Object.keys(answers).length /
-                    (exam?.questions?.length || 1)) *
-                  100
-                }
-              />
-
-              {/* Question Grid */}
+              <Progress value={(Object.keys(answers).length / (exam?.questions?.length || 1)) * 100} />
               <div className="grid grid-cols-5 gap-2 mt-4">
                 {exam?.questions?.map((q, i) => (
                   <a
                     key={q.ID}
                     href={`#q-${q.ID}`}
                     className={`h-8 w-8 flex items-center justify-center rounded text-xs font-medium transition-colors border
-                      ${answers[q.ID] ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 hover:bg-gray-100"}
+                      ${answers[q.ID] ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 hover:bg-gray-100'}
                     `}
                   >
                     {i + 1}
@@ -356,25 +429,18 @@ export default function ExamRoomPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Submit Button */}
-          <Button
+          <Button 
             className="w-full bg-green-600 hover:bg-green-700 h-12 text-lg"
             onClick={() => {
-              if (
-                Object.keys(answers).length < (exam?.questions?.length || 0)
-              ) {
-                if (!confirm("คุณยังทำข้อสอบไม่ครบ ยืนยันที่จะส่งหรือไม่?"))
-                  return
-              } else {
-                if (!confirm("ยืนยันการส่งข้อสอบ?")) return
-              }
-              handleSubmit(false)
+                if(!confirm("ยืนยันการส่งข้อสอบ?")) return;
+                handleSubmit(false);
             }}
+            disabled={loading}
           >
             ส่งข้อสอบ
           </Button>
         </div>
       </div>
     </div>
-  )
+  );
 }
