@@ -19,12 +19,14 @@ func NewQuestionHandler(service ports.IQuestionService) *QuestionHandler {
 // DTO สำหรับรับข้อมูล
 type ChoiceRequest struct {
 	Content   string `json:"content"`
+	ImageURL  string `json:"image_url"`
 	IsCorrect bool   `json:"is_correct"`
 }
 
 type CreateQuestionRequest struct {
 	SubjectID  uint            `json:"subject_id"`
 	Content    string          `json:"content"`
+	ImageURL   string          `json:"image_url"`
 	Difficulty int             `json:"difficulty"`
 	Choices    []ChoiceRequest `json:"choices"`
 }
@@ -51,6 +53,7 @@ func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 	for i, ch := range req.Choices {
 		choices[i] = domain.Choice{
 			Content:   ch.Content,
+			ImageURL:  ch.ImageURL,
 			IsCorrect: ch.IsCorrect,
 		}
 	}
@@ -58,6 +61,7 @@ func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 	question := domain.Question{
 		SubjectID:  req.SubjectID,
 		Content:    req.Content,
+		ImageURL:   req.ImageURL,
 		Type:       domain.MCQ,
 		Difficulty: req.Difficulty,
 		Choices:    choices,

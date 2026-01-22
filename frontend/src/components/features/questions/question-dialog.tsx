@@ -33,15 +33,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { questionService } from "@/services/question.service"
+import { ImageUploader } from "@/components/ui/image-uploader"
 
 // Schema Validation
 const formSchema = z.object({
   content: z.string().min(1, "กรุณากรอกโจทย์"),
+  image_url: z.string().optional(),
   difficulty: z.string(), // รับจาก Select เป็น string แล้วค่อยแปลงเป็น number
   choices: z
     .array(
       z.object({
         content: z.string().min(1, "กรุณากรอกตัวเลือก"),
+        image_url: z.string().optional(),
         is_correct: z.boolean(),
       }),
     )
@@ -111,6 +114,7 @@ export function QuestionDialog({
       await questionService.create({
         subject_id: subjectId,
         content: values.content,
+        image_url: values.image_url,
         difficulty: parseInt(values.difficulty),
         choices: values.choices,
       })
@@ -147,6 +151,22 @@ export function QuestionDialog({
                     <Textarea placeholder="พิมพ์โจทย์ที่นี่..." {...field} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* เพิ่ม Uploader ใต้โจทย์ */}
+            <FormField
+              control={form.control}
+              name="image_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ImageUploader
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />
@@ -219,21 +239,38 @@ export function QuestionDialog({
                   </div>
 
                   {/* Input ข้อความตัวเลือก */}
-                  <FormField
-                    control={form.control}
-                    name={`choices.${index}.content`}
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl>
-                          <Input
-                            placeholder={`ตัวเลือกที่ ${index + 1}`}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="flex-1 space-y-2">
+                    <FormField
+                      control={form.control}
+                      name={`choices.${index}.content`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              placeholder={`ตัวเลือกที่ ${index + 1}`}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {/* Uploader ของตัวเลือก */}
+                    <FormField
+                      control={form.control}
+                      name={`choices.${index}.image_url`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <ImageUploader
+                              value={field.value}
+                              onChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   {/* ปุ่มลบ */}
                   <Button

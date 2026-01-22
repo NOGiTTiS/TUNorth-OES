@@ -25,6 +25,7 @@ import { examService } from "@/services/exam.service"
 import { attemptService } from "@/services/attempt.service"
 import { Exam } from "@/types/exam"
 import { ExamAttempt, ExamAnswer } from "@/types/attempt"
+import Image from "next/image"
 
 interface PageProps {
   // 2. แก้ Type ให้เป็น Promise
@@ -56,7 +57,7 @@ export default function ExamRoomPage({ params }: PageProps) {
   )
 
   // เพิ่ม State สำหรับนับจำนวนครั้งที่โกง
-  const [cheatCount, setCheatCount] = useState(0);
+  const [cheatCount, setCheatCount] = useState(0)
 
   // 1. Initial Load: ดึงข้อมูลสอบ และ เริ่ม Start Attempt
   useEffect(() => {
@@ -117,30 +118,30 @@ export default function ExamRoomPage({ params }: PageProps) {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         // ถ้านักเรียนสลับจอ หรือพับหน้าจอ
-        setCheatCount(prev => prev + 1);
+        setCheatCount((prev) => prev + 1)
         toast.error("คำเตือน! กรุณาอย่าออกจากหน้าสอบ", {
           description: "ระบบได้บันทึกพฤติกรรมของท่านไว้แล้ว",
           duration: 5000,
-        });
-        
+        })
+
         // (Optional) ถ้าโกงเกิน 3 ครั้ง อาจจะบังคับส่งข้อสอบเลยก็ได้
-        if (cheatCount >= 3) handleSubmit(true);
+        if (cheatCount >= 3) handleSubmit(true)
       }
-    };
+    }
 
     // ป้องกันการคลิกขวา (Optional)
     const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-    };
+      e.preventDefault()
+    }
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    document.addEventListener("contextmenu", handleContextMenu);
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    document.addEventListener("contextmenu", handleContextMenu)
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      document.removeEventListener("contextmenu", handleContextMenu);
-    };
-  }, []);
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      document.removeEventListener("contextmenu", handleContextMenu)
+    }
+  }, [])
 
   // ฟังก์ชันเลือกคำตอบ
   const handleSelectAnswer = (qId: number, cId: number) => {
@@ -235,11 +236,24 @@ export default function ExamRoomPage({ params }: PageProps) {
         {exam?.questions?.map((q, index) => (
           <Card key={q.ID} id={`q-${q.ID}`}>
             <CardHeader>
-              <CardTitle className="text-lg flex gap-3">
-                <span className="bg-blue-100 text-blue-800 w-8 h-8 flex items-center justify-center rounded-full text-sm">
-                  {index + 1}
-                </span>
-                <span>{q.content}</span>
+              <CardTitle className="text-lg flex flex-col gap-3">
+                <div className="flex gap-3">
+                  <span className="bg-blue-100 text-blue-800 w-8 h-8 flex items-center justify-center rounded-full text-sm shrink-0">
+                    {index + 1}
+                  </span>
+                  <span>{q.content}</span>
+                </div>
+                {/* แสดงรูปโจทย์ */}
+                {q.image_url && (
+                  <div className="ml-11 relative h-60 w-full max-w-md rounded-lg overflow-hidden border">
+                    <Image
+                      src={q.image_url}
+                      alt="Question Image"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -261,13 +275,26 @@ export default function ExamRoomPage({ params }: PageProps) {
                     }`}
                   >
                     <RadioGroupItem value={c.ID!.toString()} id={`c-${c.ID}`} />
-                    {/* เพิ่ม cursor-pointer ให้ label ด้วย */}
-                    <Label
-                      htmlFor={`c-${c.ID}`}
-                      className="flex-1 cursor-pointer font-normal"
-                    >
-                      {c.content}
-                    </Label>
+                    <div className="flex-1 cursor-pointer">
+                      {/* เพิ่ม cursor-pointer ให้ label ด้วย */}
+                      <Label
+                        htmlFor={`c-${c.ID}`}
+                        className="flex-1 cursor-pointer font-normal"
+                      >
+                        {c.content}
+                      </Label>
+                      {/* แสดงรูปตัวเลือก */}
+                      {c.image_url && (
+                        <div className="mt-2 relative h-32 w-32 rounded-md overflow-hidden border">
+                          <Image
+                            src={c.image_url}
+                            alt="Choice Image"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </RadioGroup>

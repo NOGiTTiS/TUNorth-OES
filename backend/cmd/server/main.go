@@ -16,6 +16,7 @@ import (
 	scalar "github.com/yokeTH/gofiber-scalar"
 
 	// Import packages ของเรา
+	"github.com/nogittis/tunorth-oes-backend/internal/adapters/gateway"
 	"github.com/nogittis/tunorth-oes-backend/internal/adapters/handler"
 	"github.com/nogittis/tunorth-oes-backend/internal/adapters/repository"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/services"
@@ -82,6 +83,10 @@ func main() {
     // สังเกตว่าเราส่ง examRepo เข้าไปด้วย เพื่อให้ Service ไปดึงเฉลยมาตรวจได้
     attemptService := services.NewAttemptService(attemptRepo, examRepo) 
     attemptHandler := handler.NewAttemptHandler(attemptService)
+
+	// Cloudinary
+    cloudService, _ := gateway.NewCloudinaryService() // Error handling จริงๆ ควรทำดีกว่านี้
+    uploadHandler := handler.NewUploadHandler(cloudService)
 
 	// Setup Fiber App
 	app := fiber.New(fiber.Config{
@@ -160,6 +165,9 @@ func main() {
 	users.Use(jwtMiddleware) // ต้อง Login ก่อน
 	users.Get("/", userHandler.GetAllUsers)
 	users.Delete("/:id", userHandler.DeleteUser)
+
+	// Upload Route (ต้อง Login)
+    api.Post("/upload", jwtMiddleware, uploadHandler.UploadImage)
 
 	// Test Route
 	app.Get("/", func(c *fiber.Ctx) error {
