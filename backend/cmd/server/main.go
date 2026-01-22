@@ -167,6 +167,8 @@ func main() {
 	users := api.Group("/users")
 	users.Use(jwtMiddleware) // ต้อง Login ก่อน
 	users.Get("/", userHandler.GetAllUsers)
+	users.Post("/", userHandler.CreateUser)
+	users.Put("/:id", userHandler.UpdateUser)
 	users.Delete("/:id", userHandler.DeleteUser)
 
 	// Upload Route (ต้อง Login)

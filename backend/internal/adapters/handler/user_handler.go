@@ -30,6 +30,16 @@ type UserHandler struct {
 	userService ports.IUserService
 }
 
+// DTO สำหรับรับข้อมูล Create/Update
+type CreateUserRequest struct {
+	Username  string `json:"username"`
+	Password  string `json:"password"` // ถ้า Update แล้วไม่ส่งมา แปลว่าไม่เปลี่ยน
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Role      string `json:"role"`
+	ClassRoom string `json:"class_room"`
+}
+
 func NewUserHandler(service ports.IUserService) *UserHandler {
 	return &UserHandler{
 		userService: service,
@@ -131,6 +141,69 @@ func (h *UserHandler) GetAllUsers(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(users)
+}
+
+// CreateUser godoc
+// @Summary      สร้างผู้ใช้งานใหม่ (Admin)
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Param        request body CreateUserRequest true "ข้อมูลผู้ใช้"
+// @Security     ApiKeyAuth
+// @Router       /users [post]
+func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
+	req := new(CreateUserRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
+	}
+
+	user := domain.User{
+		Username:  req.Username,
+		Password:  req.Password,
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		Role:      domain.UserRole(req.Role),
+		ClassRoom: req.ClassRoom,
+	}
+
+	if err := h.userService.CreateUser(&user); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(user)
+}
+
+// UpdateUser godoc
+// @Summary      แก้ไขข้อมูลผู้ใช้งาน
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Param        id      path int               true "User ID"
+// @Param        request body CreateUserRequest true "ข้อมูลที่ต้องการแก้ไข (Password เว้นว่างได้)"
+// @Security     ApiKeyAuth
+// @Router       /users/{id} [put]
+func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
+	id, _ := strconv.Atoi(c.Params("id"))
+	req := new(CreateUserRequest)
+	
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
+	}
+
+	user := domain.User{
+		// Username ปกติจะไม่ให้แก้กันง่ายๆ หรือแล้วแต่ Policy (ในที่นี้เราไม่เอาไป update)
+		Password:  req.Password, 
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		Role:      domain.UserRole(req.Role),
+		ClassRoom: req.ClassRoom,
+	}
+
+	if err := h.userService.UpdateUser(uint(id), &user); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "User updated successfully"})
 }
 
 // DeleteUser godoc

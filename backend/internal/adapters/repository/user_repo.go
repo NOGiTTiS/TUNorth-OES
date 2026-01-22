@@ -66,3 +66,8 @@ func (r *userRepo) FindByID(id uint) (*domain.User, error) {
 	err := r.db.First(&user, id).Error
 	return &user, err
 }
+
+func (r *userRepo) Update(user *domain.User) error {
+	// บันทึกทุก Field ที่มีการเปลี่ยนแปลง (รวมถึง Password ถ้ามีการเปลี่ยน)
+	return r.db.Save(user).Error
+}

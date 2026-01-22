@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, User as UserIcon, Shield, GraduationCap } from "lucide-react";
+import { Trash2, User as UserIcon, Shield, GraduationCap, Plus, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -30,14 +30,22 @@ import {
 import { userService } from "@/services/user.service";
 import { User } from "@/types/user";
 import { useAuthStore } from "@/store/useAuthStore";
+import { UserDialog } from "@/components/features/users/user-dialog";
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // State สำหรับการลบ
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  
+  // State สำหรับการสร้าง/แก้ไข
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
   
   const currentUser = useAuthStore((state) => state.user);
 
+  // ฟังก์ชันดึงข้อมูลผู้ใช้
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -54,6 +62,19 @@ export default function UserManagementPage() {
     fetchUsers();
   }, []);
 
+  // เปิด Dialog สร้างใหม่
+  const handleCreate = () => {
+    setUserToEdit(null);
+    setDialogOpen(true);
+  };
+
+  // เปิด Dialog แก้ไข
+  const handleEdit = (user: User) => {
+    setUserToEdit(user);
+    setDialogOpen(true);
+  };
+
+  // ดำเนินการลบ
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
@@ -67,6 +88,7 @@ export default function UserManagementPage() {
     }
   };
 
+  // Helper สำหรับแสดง Badge ตาม Role
   const getRoleBadge = (role: string) => {
     switch (role) {
       case "admin":
@@ -80,13 +102,18 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-          จัดการผู้ใช้งาน
-        </h2>
-        <p className="text-gray-500">
-          รายชื่อนักเรียนและบุคลากรทั้งหมดในระบบ
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+            จัดการผู้ใช้งาน
+          </h2>
+          <p className="text-gray-500">
+            รายชื่อนักเรียนและบุคลากรทั้งหมดในระบบ
+          </p>
+        </div>
+        <Button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-2 h-4 w-4" /> เพิ่มผู้ใช้งาน
+        </Button>
       </div>
 
       <div className="rounded-md border bg-white shadow-sm">
@@ -97,6 +124,7 @@ export default function UserManagementPage() {
               <TableHead>Username</TableHead>
               <TableHead>ชื่อ-นามสกุล</TableHead>
               <TableHead>สถานะ (Role)</TableHead>
+              <TableHead>ห้องเรียน</TableHead>
               <TableHead>วันที่สมัคร</TableHead>
               <TableHead className="text-right">จัดการ</TableHead>
             </TableRow>
@@ -104,13 +132,15 @@ export default function UserManagementPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
-                  กำลังโหลดข้อมูล...
+                <TableCell colSpan={7} className="h-24 text-center">
+                  <div className="flex justify-center items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> กำลังโหลดข้อมูล...
+                  </div>
                 </TableCell>
               </TableRow>
             ) : users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-gray-500">
+                <TableCell colSpan={7} className="h-24 text-center text-gray-500">
                   ไม่พบผู้ใช้งาน
                 </TableCell>
               </TableRow>
@@ -123,19 +153,34 @@ export default function UserManagementPage() {
                     {u.first_name} {u.last_name}
                   </TableCell>
                   <TableCell>{getRoleBadge(u.role)}</TableCell>
+                  <TableCell>
+                    {u.class_room ? <Badge variant="outline">{u.class_room}</Badge> : "-"}
+                  </TableCell>
                   <TableCell className="text-gray-500 text-sm">
                     {u.created_at ? format(new Date(u.created_at), "d MMM yyyy", { locale: th }) : "-"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => setDeleteId(u.ID)}
-                      disabled={u.ID === currentUser?.user_id} // ห้ามลบตัวเอง
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                        <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                        onClick={() => handleEdit(u)}
+                        >
+                        <Pencil className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-gray-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => setDeleteId(u.ID)}
+                        disabled={u.ID === currentUser?.user_id} // ห้ามลบตัวเอง
+                        title={u.ID === currentUser?.user_id ? "ไม่สามารถลบบัญชีตัวเองได้" : "ลบผู้ใช้"}
+                        >
+                        <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -144,6 +189,15 @@ export default function UserManagementPage() {
         </Table>
       </div>
 
+      {/* Dialog สร้าง/แก้ไข ผู้ใช้ */}
+      <UserDialog 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen}
+        userToEdit={userToEdit}
+        onSuccess={fetchUsers}
+      />
+
+      {/* Alert Dialog ยืนยันการลบ */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

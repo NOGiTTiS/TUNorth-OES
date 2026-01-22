@@ -79,3 +79,47 @@ func (s *userService) GetAllUsers() ([]domain.User, error) {
 func (s *userService) DeleteUser(id uint) error {
 	return s.userRepo.Delete(id)
 }
+
+// เพิ่มฟังก์ชัน GetUserByID
+func (s *userService) GetUserByID(id uint) (*domain.User, error) {
+	return s.userRepo.FindByID(id)
+}
+
+// เพิ่มฟังก์ชัน CreateUser (คล้าย Register แต่ Admin เป็นคนทำ)
+func (s *userService) CreateUser(user *domain.User) error {
+	// Hash Password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.Password = string(hashedPassword)
+	
+	return s.userRepo.CreateUser(user)
+}
+
+// เพิ่มฟังก์ชัน UpdateUser
+func (s *userService) UpdateUser(id uint, input *domain.User) error {
+	// 1. หา User เดิมก่อน
+	existingUser, err := s.userRepo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	// 2. อัปเดตข้อมูล (เฉพาะที่มีการส่งมา)
+	existingUser.FirstName = input.FirstName
+	existingUser.LastName = input.LastName
+	existingUser.Role = input.Role
+	existingUser.ClassRoom = input.ClassRoom // เพิ่มเรื่องห้องเรียน
+
+	// 3. ถ้ามีการส่ง Password มาใหม่ ให้ Hash ใหม่ (ถ้าส่งมาเป็นว่างๆ คือไม่เปลี่ยน)
+	if input.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		existingUser.Password = string(hashedPassword)
+	}
+
+	// 4. บันทึก
+	return s.userRepo.Update(existingUser)
+}
