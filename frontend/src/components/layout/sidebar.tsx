@@ -15,7 +15,9 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter } from "next/navigation";
 
-export function Sidebar() {
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
+
+export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user } = useAuthStore(); // ดึง user ออกมาด้วย
@@ -77,7 +79,7 @@ export function Sidebar() {
   );
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-white">
+    <div className={cn("flex h-full w-64 flex-col border-r bg-white", className)}>
       <div className="flex h-16 items-center border-b px-6">
         <span className="text-xl font-bold text-blue-700">TUNorth-OES</span>
       </div>
