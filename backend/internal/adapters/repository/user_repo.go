@@ -45,3 +45,18 @@ func (r *userRepo) FindUserByUsername(username string) (*domain.User, error) {
 	
 	return &user, nil
 }
+
+func (r *userRepo) FindAll() ([]domain.User, error) {
+	var users []domain.User
+	// ดึงข้อมูลทั้งหมด ยกเว้น password (เพื่อความปลอดภัย)
+	// Omit("Password") อาจจะไม่ทำงานถ้า field ใน struct ไม่ได้ตั้งเป็น pointer หรือ scanner
+	// แต่ใน GORM v2 เราใช้ Smart Select หรือเลือกเฉพาะ field ได้
+	// เอาแบบง่ายก่อนคือดึงมาหมด แล้ว JSON tag "-" ใน domain.User จะช่วยซ่อน password ให้เองครับ
+	err := r.db.Order("created_at desc").Find(&users).Error
+	return users, err
+}
+
+func (r *userRepo) Delete(id uint) error {
+	// Hard Delete หรือ Soft Delete ขึ้นอยู่กับ GORM Model (ถ้ามี DeletedAt จะเป็น Soft Delete)
+	return r.db.Delete(&domain.User{}, id).Error
+}

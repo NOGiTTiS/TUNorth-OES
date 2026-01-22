@@ -55,6 +55,9 @@ export default function ExamRoomPage({ params }: PageProps) {
     null,
   )
 
+  // เพิ่ม State สำหรับนับจำนวนครั้งที่โกง
+  const [cheatCount, setCheatCount] = useState(0);
+
   // 1. Initial Load: ดึงข้อมูลสอบ และ เริ่ม Start Attempt
   useEffect(() => {
     const initExam = async () => {
@@ -109,6 +112,35 @@ export default function ExamRoomPage({ params }: PageProps) {
       if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [examId, router])
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // ถ้านักเรียนสลับจอ หรือพับหน้าจอ
+        setCheatCount(prev => prev + 1);
+        toast.error("คำเตือน! กรุณาอย่าออกจากหน้าสอบ", {
+          description: "ระบบได้บันทึกพฤติกรรมของท่านไว้แล้ว",
+          duration: 5000,
+        });
+        
+        // (Optional) ถ้าโกงเกิน 3 ครั้ง อาจจะบังคับส่งข้อสอบเลยก็ได้
+        if (cheatCount >= 3) handleSubmit(true);
+      }
+    };
+
+    // ป้องกันการคลิกขวา (Optional)
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("contextmenu", handleContextMenu);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("contextmenu", handleContextMenu);
+    };
+  }, []);
 
   // ฟังก์ชันเลือกคำตอบ
   const handleSelectAnswer = (qId: number, cId: number) => {

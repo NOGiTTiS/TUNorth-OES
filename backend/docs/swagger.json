@@ -693,6 +693,73 @@
                     }
                 }
             }
+        },
+        "/users": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "ดึงรายชื่อผู้ใช้ทั้งหมด",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.User"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "ลบผู้ใช้งาน",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -937,6 +1004,64 @@
                     "type": "string"
                 }
             }
+        },
+        "github_com_nogittis_tunorth-oes-backend_internal_core_domain.User": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
+                "email": {
+                    "description": "ข้อมูลเพิ่มเติม",
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role": {
+                    "description": "admin, teacher, student",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.UserRole"
+                        }
+                    ]
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "username": {
+                    "description": "ชื่อผู้ใช้ห้ามซ้ำ",
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_nogittis_tunorth-oes-backend_internal_core_domain.UserRole": {
+            "type": "string",
+            "enum": [
+                "admin",
+                "teacher",
+                "student"
+            ],
+            "x-enum-varnames": [
+                "RoleAdmin",
+                "RoleTeacher",
+                "RoleStudent"
+            ]
         },
         "github_com_nogittis_tunorth-oes-backend_internal_core_ports.SubmitAnswerRequest": {
             "type": "object",

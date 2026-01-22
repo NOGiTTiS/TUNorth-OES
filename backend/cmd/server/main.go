@@ -155,6 +155,12 @@ func main() {
     attempts.Get("/history", attemptHandler.GetHistory)
 	attempts.Get("/exam/:examId", attemptHandler.GetExamResults)
 
+	// User Routes
+	users := api.Group("/users")
+	users.Use(jwtMiddleware) // ต้อง Login ก่อน
+	users.Get("/", userHandler.GetAllUsers)
+	users.Delete("/:id", userHandler.DeleteUser)
+
 	// Test Route
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{

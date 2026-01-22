@@ -167,6 +167,45 @@ definitions:
       updatedAt:
         type: string
     type: object
+  github_com_nogittis_tunorth-oes-backend_internal_core_domain.User:
+    properties:
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      email:
+        description: ข้อมูลเพิ่มเติม
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      last_name:
+        type: string
+      phone:
+        type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.UserRole'
+        description: admin, teacher, student
+      updatedAt:
+        type: string
+      username:
+        description: ชื่อผู้ใช้ห้ามซ้ำ
+        type: string
+    type: object
+  github_com_nogittis_tunorth-oes-backend_internal_core_domain.UserRole:
+    enum:
+    - admin
+    - teacher
+    - student
+    type: string
+    x-enum-varnames:
+    - RoleAdmin
+    - RoleTeacher
+    - RoleStudent
   github_com_nogittis_tunorth-oes-backend_internal_core_ports.SubmitAnswerRequest:
     properties:
       choice_id:
@@ -702,6 +741,47 @@ paths:
       summary: แก้ไขรายวิชา
       tags:
       - Subjects
+  /users:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_nogittis_tunorth-oes-backend_internal_core_domain.User'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: ดึงรายชื่อผู้ใช้ทั้งหมด
+      tags:
+      - Admin
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: ลบผู้ใช้งาน
+      tags:
+      - Admin
 schemes:
 - http
 swagger: "2.0"

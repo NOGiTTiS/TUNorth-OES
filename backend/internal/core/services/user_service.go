@@ -71,3 +71,11 @@ func (s *userService) Login(username, password string) (string, error) {
 
     return t, nil
 }
+
+func (s *userService) GetAllUsers() ([]domain.User, error) {
+	return s.userRepo.FindAll()
+}
+
+func (s *userService) DeleteUser(id uint) error {
+	return s.userRepo.Delete(id)
+}

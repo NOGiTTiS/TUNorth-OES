@@ -17,3 +17,11 @@ export interface UserInfo {
   role: "admin" | "teacher" | "student";
   exp: number; // วันหมดอายุ token
 }
+
+export interface RegisterRequest {
+  username: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  role: "student" | "teacher"; // ให้เลือกได้แค่นี้ (Admin ต้องแก้ใน DB เอา)
+}

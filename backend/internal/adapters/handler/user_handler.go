@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"strconv"
 	"github.com/gofiber/fiber/v2"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/domain"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/ports"
@@ -114,4 +115,39 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 		"message": "Login successful",
 		"token":   token,
 	})
+}
+
+// GetAllUsers godoc
+// @Summary      ดึงรายชื่อผู้ใช้ทั้งหมด
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Success      200  {array} domain.User
+// @Router       /users [get]
+func (h *UserHandler) GetAllUsers(c *fiber.Ctx) error {
+	users, err := h.userService.GetAllUsers()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(users)
+}
+
+// DeleteUser godoc
+// @Summary      ลบผู้ใช้งาน
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "User ID"
+// @Security     ApiKeyAuth
+// @Success      200  {object} map[string]interface{}
+// @Router       /users/{id} [delete]
+func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
+	// TODO: ควรเช็คด้วยว่า User ที่กำลังลบ ไม่ใช่ตัวเอง และคนลบต้องเป็น Admin
+	
+	id, _ := strconv.Atoi(c.Params("id"))
+	if err := h.userService.DeleteUser(uint(id)); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"message": "User deleted successfully"})
 }

@@ -6,10 +6,14 @@ import "github.com/nogittis/tunorth-oes-backend/internal/core/domain" // แก�
 type IUserService interface {
     Register(user *domain.User) error
     Login(username, password string) (string, error) // คืนค่าเป็น JWT Token
+    GetAllUsers() ([]domain.User, error)
+	DeleteUser(id uint) error
 }
 
 // IUserRepository คือสิ่งที่ Service เรียกใช้จาก Database
 type IUserRepository interface {
     CreateUser(user *domain.User) error
     FindUserByUsername(username string) (*domain.User, error)
+    FindAll() ([]domain.User, error)
+	Delete(id uint) error
 }

@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import { LoginRequest, LoginResponse } from "@/types/auth";
+import { LoginRequest, LoginResponse, RegisterRequest } from "@/types/auth";
 
 export const authService = {
   // ฟังก์ชันสำหรับยิง API Login
@@ -8,5 +8,8 @@ export const authService = {
     return response.data;
   },
 
-  // (ในอนาคต) ฟังก์ชัน Register, Logout, GetProfile ก็จะมาอยู่ที่นี่
+  register: async (data: RegisterRequest) => {
+    const response = await api.post("/auth/register", data);
+    return response.data;
+  },
 };
