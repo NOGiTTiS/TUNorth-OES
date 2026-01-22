@@ -71,3 +71,8 @@ func (r *userRepo) Update(user *domain.User) error {
 	// บันทึกทุก Field ที่มีการเปลี่ยนแปลง (รวมถึง Password ถ้ามีการเปลี่ยน)
 	return r.db.Save(user).Error
 }
+
+func (r *userRepo) CreateBulk(users []domain.User) error {
+    // GORM Batch Insert
+    return r.db.Create(&users).Error
+}

@@ -13,11 +13,13 @@ type IUserService interface {
 	CreateUser(user *domain.User) error            // เพิ่ม: สร้าง (แบบ Admin)
 	UpdateUser(id uint, user *domain.User) error   // เพิ่ม: แก้ไข
 	DeleteUser(id uint) error
+
+	CreateUsersBulk(users []domain.User) error
 }
 
 // IUserRepository คือสิ่งที่ Service เรียกใช้จาก Database
 type IUserRepository interface {
-    CreateUser(user *domain.User) error
+	CreateUser(user *domain.User) error
     FindUserByUsername(username string) (*domain.User, error)
     
     // Admin Features
@@ -25,4 +27,6 @@ type IUserRepository interface {
 	FindByID(id uint) (*domain.User, error) // อันนี้มีแล้ว (เช็คอีกที)
 	Update(user *domain.User) error         // เพิ่ม: บันทึกการแก้ไข
 	Delete(id uint) error
+
+	CreateBulk(users []domain.User) error 
 }

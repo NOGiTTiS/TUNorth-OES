@@ -23,4 +23,9 @@ export const userService = {
     const response = await api.delete(`/users/${id}`);
     return response.data;
   },
+
+  createBulk: async (users: UserFormInput[]) => {
+    const response = await api.post("/users/bulk", { users });
+    return response.data;
+  },
 };

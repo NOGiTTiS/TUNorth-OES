@@ -170,6 +170,7 @@ func main() {
 	users.Post("/", userHandler.CreateUser)
 	users.Put("/:id", userHandler.UpdateUser)
 	users.Delete("/:id", userHandler.DeleteUser)
+	users.Post("/bulk", userHandler.BulkCreateUsers) 
 
 	// Upload Route (ต้อง Login)
     api.Post("/upload", jwtMiddleware, uploadHandler.UploadImage)

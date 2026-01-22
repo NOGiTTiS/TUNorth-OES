@@ -123,3 +123,25 @@ func (s *userService) UpdateUser(id uint, input *domain.User) error {
 	// 4. บันทึก
 	return s.userRepo.Update(existingUser)
 }
+
+func (s *userService) CreateUsersBulk(users []domain.User) error {
+    for i := range users {
+        // ถ้าไม่มี Password ให้ตั้งค่า Default (เช่น 123456)
+        pwd := users[i].Password
+        if pwd == "" {
+            pwd = "123456" 
+        }
+
+        hashed, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
+        if err != nil {
+            return err
+        }
+        users[i].Password = string(hashed)
+        
+        // ถ้าไม่มี Role ให้เป็น Student
+        if users[i].Role == "" {
+            users[i].Role = domain.RoleStudent
+        }
+    }
+    return s.userRepo.CreateBulk(users)
+}

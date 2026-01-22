@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, User as UserIcon, Shield, GraduationCap, Plus, Pencil, Loader2 } from "lucide-react";
+import { Trash2, User as UserIcon, Shield, GraduationCap, Plus, Pencil, Loader2, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -31,6 +31,7 @@ import { userService } from "@/services/user.service";
 import { User } from "@/types/user";
 import { useAuthStore } from "@/store/useAuthStore";
 import { UserDialog } from "@/components/features/users/user-dialog";
+import { UserImportDialog } from "@/components/features/users/user-import-dialog";
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -43,7 +44,9 @@ export default function UserManagementPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const currentUser = useAuthStore((state) => state.user);
+  
 
   // ฟังก์ชันดึงข้อมูลผู้ใช้
   const fetchUsers = async () => {
@@ -102,19 +105,14 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-            จัดการผู้ใช้งาน
-          </h2>
-          <p className="text-gray-500">
-            รายชื่อนักเรียนและบุคลากรทั้งหมดในระบบ
-          </p>
+      <div className="flex gap-2"> {/* เปลี่ยน div ปุ่มให้เป็น flex เพื่อใส่ 2 ปุ่ม */}
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+                <FileUp className="mr-2 h-4 w-4" /> นำเข้า Excel
+            </Button>
+            <Button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="mr-2 h-4 w-4" /> เพิ่มผู้ใช้งาน
+            </Button>
         </div>
-        <Button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="mr-2 h-4 w-4" /> เพิ่มผู้ใช้งาน
-        </Button>
-      </div>
 
       <div className="rounded-md border bg-white shadow-sm">
         <Table>
@@ -214,6 +212,13 @@ export default function UserManagementPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* เพิ่ม Dialog ไว้ล่างสุด */}
+      <UserImportDialog 
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onSuccess={fetchUsers}
+      />
     </div>
   );
 }

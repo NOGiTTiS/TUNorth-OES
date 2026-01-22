@@ -40,6 +40,11 @@ type CreateUserRequest struct {
 	ClassRoom string `json:"class_room"`
 }
 
+type BulkCreateUserRequest struct {
+    Users []CreateUserRequest `json:"users"`
+}
+
+
 func NewUserHandler(service ports.IUserService) *UserHandler {
 	return &UserHandler{
 		userService: service,
@@ -223,4 +228,40 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(fiber.Map{"message": "User deleted successfully"})
+}
+
+// BulkCreateUsers godoc
+// @Summary      นำเข้าผู้ใช้หลายคน
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Param        request body BulkCreateUserRequest true "รายชื่อผู้ใช้"
+// @Security     ApiKeyAuth
+// @Router       /users/bulk [post]
+func (h *UserHandler) BulkCreateUsers(c *fiber.Ctx) error {
+    req := new(BulkCreateUserRequest)
+    if err := c.BodyParser(req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
+    }
+
+    var users []domain.User
+    for _, uReq := range req.Users {
+        users = append(users, domain.User{
+            Username:  uReq.Username,
+            Password:  uReq.Password,
+            FirstName: uReq.FirstName,
+            LastName:  uReq.LastName,
+            Role:      domain.UserRole(uReq.Role),
+            ClassRoom: uReq.ClassRoom,
+        })
+    }
+
+    if err := h.userService.CreateUsersBulk(users); err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+    }
+
+    return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+        "message": "Users imported successfully",
+        "count":   len(users),
+    })
 }
