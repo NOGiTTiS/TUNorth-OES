@@ -48,3 +48,18 @@ func (r *examRepo) AddQuestions(examID uint, questionIDs []uint) error {
 
 	return r.db.Model(&exam).Association("Questions").Append(questions)
 }
+
+// เพิ่มฟังก์ชันหาข้อสอบตามห้อง
+func (r *examRepo) FindByClass(classRoom string) ([]domain.Exam, error) {
+	var exams []domain.Exam
+	// SQL: WHERE '4.1' = ANY(target_classes)
+	// เป็น Syntax เฉพาะของ Postgres ในการหาค่าใน Array
+	err := r.db.Preload("Subject").Where("? = ANY(target_classes)", classRoom).Order("created_at desc").Find(&exams).Error
+	return exams, err
+}
+
+// เพิ่มฟังก์ชันลบ
+func (r *examRepo) Delete(id uint) error {
+	// ลบ Exam (Cascade จะลบ ExamQuestions ให้เองถ้าตั้งไว้ หรือ GORM จัดการให้)
+	return r.db.Delete(&domain.Exam{}, id).Error
+}

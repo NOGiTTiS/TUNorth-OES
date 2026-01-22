@@ -5,9 +5,10 @@ import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Loader2, Menu } from "lucide-react"; // 1. เพิ่ม Icon Menu
+import { Loader2, Menu } from "lucide-react";
+import { jwtDecode } from "jwt-decode";
+import { UserInfo } from "@/types/auth";
 
-// 2. Import Sheet components
 import {
   Sheet,
   SheetContent,
@@ -15,7 +16,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import * as VisuallyHidden from "@radix-ui/react-visually-hidden"; // เพื่อซ่อน Title (Accessibility)
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
 export default function DashboardLayout({
   children,
@@ -24,45 +25,39 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, user, token } = useAuthStore();
+  const { isAuthenticated, user, token, setLogin, logout } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
 
+  // --- Logic เช็ค Login (เหมือนเดิม ไม่ต้องแก้) ---
   useEffect(() => {
-    // 1. เช็คว่า Login หรือยัง
-    // ต้องเช็ค token จาก localStorage ด้วย เพราะบางที state ใน zustand อาจจะยังไม่ restore กลับมาตอน refresh
-    const storedToken = localStorage.getItem("token");
+    const checkAuth = () => {
+      const storedToken = localStorage.getItem("token");
+      if (!storedToken) { router.push("/login"); return; }
 
-    if (!storedToken && !token) {
-      router.push("/login");
-      return;
-    }
-
-    // 2. เช็คสิทธิ์การเข้าถึง (Role Base Access Control)
-    if (user) {
-      const role = user.role;
-
-      // รายการหน้าที่ห้าม "นักเรียน" เข้า
-      const teacherRoutes = [
-        "/dashboard/subjects",
-        "/dashboard/questions",
-        "/dashboard/exams", // หน้านี้รวม create ด้วย
-        "/dashboard/students",
-      ];
-      
-      // ถ้านักเรียน พยายามเข้าหน้าครู -> ดีดกลับ Dashboard
-      if (role === "student" && teacherRoutes.some(route => pathname.startsWith(route))) {
-        // ยกเว้นหน้า /dashboard/student/exams ที่นักเรียนเข้าได้
-        if (!pathname.startsWith("/dashboard/student")) {
-           router.push("/dashboard");
+      if (storedToken && !user) {
+        try {
+          const decodedUser = jwtDecode<UserInfo>(storedToken);
+          const currentTime = Date.now() / 1000;
+          if (decodedUser.exp < currentTime) throw new Error("Token expired");
+          setLogin(storedToken, decodedUser);
+        } catch (error) {
+          logout(); router.push("/login"); return;
         }
       }
-    }
-    
-    setIsChecking(false);
+      
+      // Check Role logic...
+      const currentUserRole = user?.role || (storedToken ? jwtDecode<UserInfo>(storedToken).role : "");
+      const teacherRoutes = ["/dashboard/subjects", "/dashboard/questions", "/dashboard/exams", "/dashboard/students"];
+      if (currentUserRole === "student" && teacherRoutes.some(route => pathname.startsWith(route))) {
+         if (!pathname.startsWith("/dashboard/student")) router.push("/dashboard");
+      }
 
-  }, [isAuthenticated, token, user, router, pathname]);
+      setIsChecking(false);
+    };
+    checkAuth();
+  }, [pathname, router, setLogin, logout, user]);
+  // -------------------------------------------
 
-  // แสดงหน้าจอ Loading ระหว่างตรวจสอบสิทธิ์ (เพื่อไม่ให้เห็นหน้าจอแวบๆ)
   if (isChecking) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-slate-50">
@@ -72,61 +67,55 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen w-full bg-slate-50">
+    <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
       
-      {/* 3. Sidebar สำหรับ Desktop (ซ่อนเมื่อจอเล็กกว่า md) */}
-      <div className="hidden md:block h-full">
-        <Sidebar />
-      </div>
+      {/* 1. Sidebar สำหรับ Desktop */}
+      {/* สำคัญ: hidden (ซ่อนในมือถือ) md:block (โชว์ในจอใหญ่) */}
+      <aside className="hidden md:flex w-64 flex-col border-r bg-white h-full shrink-0">
+        <Sidebar className="border-none" />
+      </aside>
 
       {/* พื้นที่เนื้อหาหลัก */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden w-full">
         
-        {/* 4. ส่วน Header + Mobile Menu Trigger */}
-        <div className="flex flex-col">
-            {/* Mobile Header Bar (แสดงเฉพาะมือถือ) */}
-            <div className="md:hidden flex items-center p-4 bg-white border-b">
+        {/* 2. Header สำหรับ Mobile (มีปุ่ม Menu) */}
+        <header className="md:hidden flex items-center h-16 px-4 bg-white border-b shrink-0 justify-between">
+            <div className="flex items-center gap-2">
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="mr-2">
+                        <Button variant="ghost" size="icon" className="-ml-2">
                             <Menu className="h-6 w-6" />
                         </Button>
                     </SheetTrigger>
-                    {/* เมนูที่เลื่อนออกมาจากซ้าย */}
-                    <SheetContent side="left" className="p-0 w-64" aria-describedby={undefined}>
-                        {/* Accessibility Fix: ต้องมี Title แม้จะซ่อนก็ตาม */}
+                    {/* เมนูที่เลื่อนออกมา */}
+                    <SheetContent side="left" className="p-0 w-64 border-r" aria-describedby={undefined}>
                         <VisuallyHidden.Root>
                           <SheetTitle>Menu</SheetTitle>
                         </VisuallyHidden.Root>
-                        
-                        <Sidebar className="border-none" />
+                        <Sidebar className="border-none h-full" />
                     </SheetContent>
                 </Sheet>
                 <span className="font-bold text-lg text-blue-700">TUNorth-OES</span>
             </div>
-
-            {/* Desktop Header เดิม (ซ่อนในมือถือ หรือจะโชว์ก็ได้ แต่ผมแนะนำให้ซ่อนถ้ามันซ้ำซ้อน) */}
-            {/* หรือถ้า Header ของคุณมีแค่ User Profile ทางขวา ให้ใช้ร่วมกันได้เลยครับ */}
-            <div className="hidden md:block">
-               <Header />
-            </div>
             
-            {/* ถ้าอยากให้ Header (User Profile) แสดงในมือถือด้วย ให้ใช้แบบนี้แทน 2 div ด้านบนครับ: */}
-            {/* 
-            <header className="flex h-16 items-center gap-4 border-b bg-white px-6">
-                <div className="md:hidden">
-                    <Sheet>...</Sheet> (โค้ด Sheet ข้างบน)
-                </div>
-                <div className="flex-1">
-                   <Header /> (ต้องไปแก้ Header ให้ตัดคำว่า "ยินดีต้อนรับ..." ออกถ้าจอเล็ก)
-                </div>
-            </header> 
-            */}
-        </div>
+            {/* User Profile เล็กๆ บนมือถือ */}
+            <div className="flex items-center gap-2">
+               <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
+                  {user?.username?.substring(0, 2).toUpperCase() || "GU"}
+               </div>
+            </div>
+        </header>
 
-        {/* เนื้อหาหน้าเว็บ */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          {children}
+        {/* 3. Header สำหรับ Desktop (ซ่อนในมือถือ) */}
+        <header className="hidden md:block shrink-0">
+           <Header />
+        </header>
+
+        {/* 4. เนื้อหา (Scrollable) */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 w-full">
+          <div className="max-w-6xl mx-auto">
+             {children}
+          </div>
         </main>
       </div>
     </div>

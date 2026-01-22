@@ -2,7 +2,7 @@ package domain
 
 import (
 	"time"
-
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -16,6 +16,7 @@ type Exam struct {
 	Duration    int       `gorm:"not null" json:"duration" example:"60"` // เวลาทำข้อสอบ (นาที)
 	StartTime   time.Time `json:"start_time" example:"2026-03-01T09:00:00Z"`
 	EndTime     time.Time `json:"end_time" example:"2026-03-01T12:00:00Z"`
+	TargetClasses pq.StringArray `gorm:"type:text[]" json:"target_classes"` 
 	
 	// Relation: ชุดนี้มีข้อสอบอะไรบ้าง
 	Questions   []Question `gorm:"many2many:exam_questions;" json:"questions,omitempty"`

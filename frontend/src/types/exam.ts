@@ -11,6 +11,7 @@ export interface Exam {
   start_time: string;
   end_time: string;
   questions?: Question[];
+  target_classes?: string[]; 
 }
 
 export interface CreateExamInput {
@@ -21,4 +22,5 @@ export interface CreateExamInput {
   start_time: string;
   end_time: string;
   question_ids: number[];
+  target_classes: string[];
 }

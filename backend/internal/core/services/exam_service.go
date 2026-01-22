@@ -2,17 +2,20 @@ package services
 
 import (
 	"errors"
-
 	"github.com/nogittis/tunorth-oes-backend/internal/core/domain"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/ports"
 )
 
 type examService struct {
 	repo ports.IExamRepository
+	userRepo ports.IUserRepository
 }
 
-func NewExamService(repo ports.IExamRepository) ports.IExamService {
-	return &examService{repo: repo}
+func NewExamService(repo ports.IExamRepository, userRepo ports.IUserRepository) ports.IExamService {
+	return &examService{
+		repo:     repo,
+		userRepo: userRepo,
+	}
 }
 
 func (s *examService) CreateExam(exam *domain.Exam, questionIDs []uint) error {
@@ -45,4 +48,24 @@ func (s *examService) GetAllExams() ([]domain.Exam, error) {
 
 func (s *examService) GetExamByID(id uint) (*domain.Exam, error) {
 	return s.repo.FindByID(id)
+}
+
+func (s *examService) GetExamsForStudent(userID uint) ([]domain.Exam, error) {
+	// 1. ไปดูข้อมูลนักเรียนก่อน ว่าอยู่ห้องไหน
+	user, err := s.userRepo.FindByID(userID) // ต้องมั่นใจว่าใน IUserRepository มี FindByID แล้ว (ถ้าไม่มีต้องไปเพิ่ม)
+	// หมายเหตุ: ปกติ FindByID ของ User มักจะมีอยู่แล้ว ถ้ายังไม่มีให้ไปเพิ่มใน ports/user.go และ user_repo.go ครับ
+	
+	if err != nil {
+		return nil, err
+	}
+	if user.ClassRoom == "" {
+		return nil, errors.New("student has no class assigned")
+	}
+
+	// 2. ค้นหาข้อสอบที่เปิดให้ห้องนั้นสอบ
+	return s.repo.FindByClass(user.ClassRoom)
+}
+
+func (s *examService) DeleteExam(id uint) error {
+	return s.repo.Delete(id)
 }

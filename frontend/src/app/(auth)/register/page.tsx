@@ -28,6 +28,14 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authService } from "@/services/auth.service";
 
+// สร้าง Helper สร้างรายการห้อง
+const classOptions = [];
+for (let grade = 4; grade <= 6; grade++) {
+  for (let room = 1; room <= 15; room++) {
+    classOptions.push(`${grade}.${room}`);
+  }
+}
+
 const formSchema = z.object({
   username: z.string().min(4, "ชื่อผู้ใช้ต้องมีอย่างน้อย 4 ตัวอักษร"),
   password: z.string().min(6, "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"),
@@ -35,6 +43,7 @@ const formSchema = z.object({
   first_name: z.string().min(1, "กรุณากรอกชื่อจริง"),
   last_name: z.string().min(1, "กรุณากรอกนามสกุล"),
   role: z.enum(["student", "teacher"]),
+  class_room: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "รหัสผ่านไม่ตรงกัน",
   path: ["confirmPassword"],

@@ -75,7 +75,7 @@ func main() {
 
 	// Exam Dependency
 	examRepo := repository.NewExamRepository(db)
-	examService := services.NewExamService(examRepo)
+	examService := services.NewExamService(examRepo, userRepo)
 	examHandler := handler.NewExamHandler(examService)
 
 	// Attempt Dependency
@@ -153,6 +153,7 @@ func main() {
     exams.Post("/", examHandler.CreateExam) 
     exams.Get("/", examHandler.GetAllExams)
     exams.Get("/:id", examHandler.GetExamByID)
+	exams.Delete("/:id", examHandler.DeleteExam)
 
 	// Attempt Routes
     attempts := api.Group("/attempts")

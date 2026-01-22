@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/domain"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/ports"
 )
@@ -26,6 +27,7 @@ type CreateExamRequest struct {
 	StartTime   string    `json:"start_time" example:"2026-03-01T09:00:00+07:00"` // รับเป็น String ISO8601
 	EndTime     string    `json:"end_time" example:"2026-03-01T12:00:00+07:00"`
 	QuestionIDs []uint    `json:"question_ids"` // รายการ ID ข้อสอบที่จะเอามาใส่
+	TargetClasses []string `json:"target_classes"`
 }
 
 // CreateExam godoc
@@ -61,6 +63,7 @@ func (h *ExamHandler) CreateExam(c *fiber.Ctx) error {
 		Duration:    req.Duration,
 		StartTime:   startTime,
 		EndTime:     endTime,
+		TargetClasses: req.TargetClasses,
 	}
 
 	if err := h.service.CreateExam(&exam, req.QuestionIDs); err != nil {
@@ -78,12 +81,49 @@ func (h *ExamHandler) CreateExam(c *fiber.Ctx) error {
 // @Security     ApiKeyAuth
 // @Success      200  {array} domain.Exam
 // @Router       /exams [get]
+
+// 3. อัปเดต GetAllExams (หัวใจสำคัญ!)
 func (h *ExamHandler) GetAllExams(c *fiber.Ctx) error {
-	exams, err := h.service.GetAllExams()
+    // ดึง User จาก Token
+    userToken := c.Locals("user").(*jwt.Token)
+    claims := userToken.Claims.(jwt.MapClaims)
+    role := claims["role"].(string)
+
+	if role == "teacher" || role == "admin" {
+		exams, err := h.service.GetAllExams()
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(exams)
+	}
+
+	// กรณีนักเรียน
+	userID := uint(claims["user_id"].(float64))
+	
+	// เรียกใช้ฟังก์ชันที่เราเพิ่งสร้าง (Error "undefined" จะหายไป)
+	exams, err := h.service.GetExamsForStudent(userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(exams)
+}
+
+// DeleteExam godoc
+// @Summary      ลบชุดข้อสอบ
+// @Tags         Exams
+// @Security     ApiKeyAuth
+// @Param        id   path      int  true  "Exam ID"
+// @Success      200  {object} map[string]interface{}
+// @Router       /exams/{id} [delete]
+func (h *ExamHandler) DeleteExam(c *fiber.Ctx) error {
+	id, _ := strconv.Atoi(c.Params("id"))
+	
+	// เรียกใช้ Service (Error "declared and not used" จะหายไป)
+	if err := h.service.DeleteExam(uint(id)); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	
+	return c.JSON(fiber.Map{"message": "Exam deleted successfully"})
 }
 
 // GetExamByID godoc

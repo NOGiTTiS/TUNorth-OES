@@ -23,6 +23,7 @@ type User struct {
 	FirstName string   `gorm:"type:varchar(100)" json:"first_name"`
 	LastName  string   `gorm:"type:varchar(100)" json:"last_name"`
 	Role      UserRole `gorm:"type:varchar(20);default:'student'" json:"role"` // admin, teacher, student
+	ClassRoom string   `gorm:"type:varchar(10)" json:"class_room"` 
 	IsActive  bool     `gorm:"default:true" json:"is_active"`
 
 	// ข้อมูลเพิ่มเติม

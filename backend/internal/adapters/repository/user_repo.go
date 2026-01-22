@@ -60,3 +60,9 @@ func (r *userRepo) Delete(id uint) error {
 	// Hard Delete หรือ Soft Delete ขึ้นอยู่กับ GORM Model (ถ้ามี DeletedAt จะเป็น Soft Delete)
 	return r.db.Delete(&domain.User{}, id).Error
 }
+
+func (r *userRepo) FindByID(id uint) (*domain.User, error) {
+	var user domain.User
+	err := r.db.First(&user, id).Error
+	return &user, err
+}
