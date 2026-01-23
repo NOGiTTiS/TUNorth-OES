@@ -106,7 +106,7 @@ export function Sidebar({ className }: SidebarProps) {
             />
           </div>
         )}
-        <span className="text-lg font-bold text-blue-700 truncate">
+        <span className="text-lg font-bold text-primary truncate">
           {settings?.system_name || "TUNorth-OES"}
         </span>
       </div>
@@ -120,7 +120,7 @@ export function Sidebar({ className }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 pathname === item.href
-                  ? "bg-blue-50 text-blue-700"
+                  ? "bg-primary/10 text-primary"
                   : "text-gray-700 hover:bg-gray-100",
               )}
             >
@@ -132,14 +132,14 @@ export function Sidebar({ className }: SidebarProps) {
       </div>
 
       <div className="border-t p-4">
-        {/* <div className="mb-4 px-2">
+        <div className="mb-4 px-2">
           <p className="text-xs text-gray-500">เข้าใช้งานโดย</p>
           <p className="font-medium truncate">{user?.username}</p>
-          <p className="text-xs text-blue-600 uppercase">{user?.role}</p>
-        </div> */}
+          <p className="text-xs text-primary uppercase">{user?.role}</p>
+        </div>
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
         >
           <LogOut className="h-5 w-5" />
           ออกจากระบบ

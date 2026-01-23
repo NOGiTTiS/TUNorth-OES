@@ -25,7 +25,7 @@ export function Header() {
         </div>
         
         {/* รูปโปรไฟล์ (ใช้ตัวย่อชื่อไปก่อน) */}
-        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+        <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white font-bold">
             {user?.username?.substring(0, 2).toUpperCase() || "GU"}
         </div>
       </div>

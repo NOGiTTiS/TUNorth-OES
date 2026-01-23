@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { useEffect, useState } from "react"
+import { Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -12,14 +12,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,65 +29,65 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { SubjectDialog } from "@/components/features/subjects/subject-dialog";
-import { subjectService } from "@/services/subject.service";
-import { Subject } from "@/types/subject";
+} from "@/components/ui/alert-dialog"
+import { SubjectDialog } from "@/components/features/subjects/subject-dialog"
+import { subjectService } from "@/services/subject.service"
+import { Subject } from "@/types/subject"
 
 export default function SubjectsPage() {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [loading, setLoading] = useState(true);
-  
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [loading, setLoading] = useState(true)
+
   // State สำหรับ Dialog สร้าง/แก้ไข
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
 
   // State สำหรับ Dialog ลบ
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null)
 
   // ฟังก์ชันดึงข้อมูล
   const fetchSubjects = async () => {
     try {
-      setLoading(true);
-      const data = await subjectService.getAll();
-      setSubjects(data);
+      setLoading(true)
+      const data = await subjectService.getAll()
+      setSubjects(data)
     } catch (error) {
-      console.error(error);
-      toast.error("ไม่สามารถดึงข้อมูลรายวิชาได้");
+      console.error(error)
+      toast.error("ไม่สามารถดึงข้อมูลรายวิชาได้")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchSubjects();
-  }, []);
+    fetchSubjects()
+  }, [])
 
   // ฟังก์ชันเปิด Dialog สร้างใหม่
   const handleCreate = () => {
-    setSelectedSubject(null);
-    setDialogOpen(true);
-  };
+    setSelectedSubject(null)
+    setDialogOpen(true)
+  }
 
   // ฟังก์ชันเปิด Dialog แก้ไข
   const handleEdit = (subject: Subject) => {
-    setSelectedSubject(subject);
-    setDialogOpen(true);
-  };
+    setSelectedSubject(subject)
+    setDialogOpen(true)
+  }
 
   // ฟังก์ชันลบข้อมูล
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteId) return
     try {
-      await subjectService.delete(deleteId);
-      toast.success("ลบรายวิชาสำเร็จ");
-      fetchSubjects(); // โหลดข้อมูลใหม่
+      await subjectService.delete(deleteId)
+      toast.success("ลบรายวิชาสำเร็จ")
+      fetchSubjects() // โหลดข้อมูลใหม่
     } catch (error) {
-      toast.error("ลบรายวิชาไม่สำเร็จ");
+      toast.error("ลบรายวิชาไม่สำเร็จ")
     } finally {
-      setDeleteId(null);
+      setDeleteId(null)
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -100,7 +100,10 @@ export default function SubjectsPage() {
             รายการวิชาทั้งหมดในระบบที่สามารถเปิดสอบได้
           </p>
         </div>
-        <Button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-700">
+        <Button
+          onClick={handleCreate}
+          className="bg-primary hover:bg-primary/90"
+        >
           <Plus className="mr-2 h-4 w-4" /> เพิ่มรายวิชา
         </Button>
       </div>
@@ -124,7 +127,10 @@ export default function SubjectsPage() {
               </TableRow>
             ) : subjects.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-gray-500">
+                <TableCell
+                  colSpan={4}
+                  className="h-24 text-center text-gray-500"
+                >
                   ยังไม่มีรายวิชาในระบบ
                 </TableCell>
               </TableRow>
@@ -149,7 +155,7 @@ export default function SubjectsPage() {
                         <DropdownMenuItem onClick={() => handleEdit(subject)}>
                           <Pencil className="mr-2 h-4 w-4" /> แก้ไข
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => setDeleteId(subject.ID)}
                           className="text-red-600 focus:text-red-600"
                         >
@@ -166,15 +172,18 @@ export default function SubjectsPage() {
       </div>
 
       {/* Component Dialog สำหรับสร้าง/แก้ไข */}
-      <SubjectDialog 
-        open={dialogOpen} 
+      <SubjectDialog
+        open={dialogOpen}
         onOpenChange={setDialogOpen}
         subjectToEdit={selectedSubject}
         onSuccess={fetchSubjects}
       />
 
       {/* Component Alert Dialog สำหรับยืนยันการลบ */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันการลบรายการ?</AlertDialogTitle>
@@ -184,12 +193,15 @@ export default function SubjectsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
               ลบข้อมูล
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }

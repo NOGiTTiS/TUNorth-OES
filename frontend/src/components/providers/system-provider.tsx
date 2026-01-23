@@ -24,11 +24,21 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
         document.getElementsByTagName("head")[0].appendChild(link)
       }
 
-      // Update CSS Variables for Theme (Optional but nice)
+      // Update CSS Variables for Theme
       const root = document.documentElement
-      if (settings.main_color)
+      if (settings.main_color) {
         root.style.setProperty("--primary", settings.main_color)
-      // We can add more theme variable updates here
+        root.style.setProperty("--sidebar-primary", settings.main_color)
+      }
+
+      if (settings.second_color) {
+        root.style.setProperty("--secondary", settings.second_color)
+      }
+
+      if (settings.bg_gradient_start)
+        root.style.setProperty("--gradient-start", settings.bg_gradient_start)
+      if (settings.bg_gradient_end)
+        root.style.setProperty("--gradient-end", settings.bg_gradient_end)
     }
   }, [settings])
 

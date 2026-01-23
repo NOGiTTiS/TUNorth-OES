@@ -87,7 +87,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex h-screen items-center justify-center bg-slate-50">
-      <Card className="w-[350px] shadow-lg border-t-4 border-t-blue-600">
+      <Card className="w-[350px] shadow-lg border-t-4 border-t-primary">
         <CardHeader className="space-y-1 text-center">
           {settings?.logo_url && (
             <div className="flex justify-center mb-4">
@@ -101,7 +101,7 @@ export default function LoginPage() {
               </div>
             </div>
           )}
-          <CardTitle className="text-2xl font-bold text-blue-900">
+          <CardTitle className="text-2xl font-bold text-primary">
             {settings?.system_name || "เข้าสู่ระบบ"}
           </CardTitle>
           <CardDescription>
@@ -145,7 +145,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-primary hover:bg-primary/90"
                 disabled={loading}
               >
                 {loading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
@@ -153,10 +153,7 @@ export default function LoginPage() {
 
               <div className="text-center text-sm text-gray-500 mt-4">
                 ยังไม่มีบัญชี?{" "}
-                <Link
-                  href="/register"
-                  className="text-blue-600 hover:underline"
-                >
+                <Link href="/register" className="text-primary hover:underline">
                   สมัครสมาชิก
                 </Link>
               </div>
