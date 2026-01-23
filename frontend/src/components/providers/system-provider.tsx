@@ -39,6 +39,13 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
         root.style.setProperty("--gradient-start", settings.bg_gradient_start)
       if (settings.bg_gradient_end)
         root.style.setProperty("--gradient-end", settings.bg_gradient_end)
+
+      // Update UI Style
+      if (settings.style) {
+        root.setAttribute("data-ui-style", settings.style)
+      } else {
+        root.removeAttribute("data-ui-style")
+      }
     }
   }, [settings])
 

@@ -156,12 +156,17 @@ export default function LoginPage() {
                 {loading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
               </Button>
 
-              <div className="text-center text-sm text-gray-500 mt-4">
-                ยังไม่มีบัญชี?{" "}
-                <Link href="/register" className="text-primary hover:underline">
-                  สมัครสมาชิก
-                </Link>
-              </div>
+              {settings?.register_enabled && (
+                <div className="text-center text-sm text-gray-500 mt-4">
+                  ยังไม่มีบัญชี?{" "}
+                  <Link
+                    href="/register"
+                    className="text-primary hover:underline"
+                  >
+                    สมัครสมาชิก
+                  </Link>
+                </div>
+              )}
             </form>
           </Form>
         </CardContent>
