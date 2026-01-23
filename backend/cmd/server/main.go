@@ -153,6 +153,7 @@ func main() {
     exams.Post("/", examHandler.CreateExam) 
     exams.Get("/", examHandler.GetAllExams)
     exams.Get("/:id", examHandler.GetExamByID)
+	exams.Put("/:id", examHandler.UpdateExam)
 	exams.Delete("/:id", examHandler.DeleteExam)
 
 	// Attempt Routes

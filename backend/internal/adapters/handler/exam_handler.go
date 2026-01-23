@@ -28,6 +28,8 @@ type CreateExamRequest struct {
 	EndTime     string    `json:"end_time" example:"2026-03-01T12:00:00+07:00"`
 	QuestionIDs []uint    `json:"question_ids"` // รายการ ID ข้อสอบที่จะเอามาใส่
 	TargetClasses []string `json:"target_classes"`
+	IsRandom      bool     `json:"is_random"`
+	ShowScore     bool     `json:"show_score"`
 }
 
 // CreateExam godoc
@@ -64,6 +66,8 @@ func (h *ExamHandler) CreateExam(c *fiber.Ctx) error {
 		StartTime:   startTime,
 		EndTime:     endTime,
 		TargetClasses: req.TargetClasses,
+		IsRandom:      req.IsRandom,
+		ShowScore:     req.ShowScore,
 	}
 
 	if err := h.service.CreateExam(&exam, req.QuestionIDs); err != nil {
@@ -106,6 +110,53 @@ func (h *ExamHandler) GetAllExams(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(exams)
+}
+
+// UpdateExam godoc
+// @Summary      แก้ไขชุดข้อสอบ
+// @Tags         Exams
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "Exam ID"
+// @Param        request body CreateExamRequest true "ข้อมูลชุดข้อสอบ"
+// @Security     ApiKeyAuth
+// @Success      200  {object} map[string]interface{}
+// @Router       /exams/{id} [put]
+func (h *ExamHandler) UpdateExam(c *fiber.Ctx) error {
+	id, _ := strconv.Atoi(c.Params("id"))
+	req := new(CreateExamRequest)
+	
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
+	}
+
+	// แปลงเวลา (เหมือน Create)
+	startTime, err := time.Parse(time.RFC3339, req.StartTime)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid start_time"})
+	}
+	endTime, err := time.Parse(time.RFC3339, req.EndTime)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid end_time"})
+	}
+
+	exam := domain.Exam{
+		SubjectID:     req.SubjectID,
+		Title:         req.Title,
+		Description:   req.Description,
+		Duration:      req.Duration,
+		StartTime:     startTime,
+		EndTime:       endTime,
+		TargetClasses: req.TargetClasses,
+		IsRandom:      req.IsRandom,
+		ShowScore:     req.ShowScore,
+	}
+
+	if err := h.service.UpdateExam(uint(id), &exam, req.QuestionIDs); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "Exam updated successfully"})
 }
 
 // DeleteExam godoc

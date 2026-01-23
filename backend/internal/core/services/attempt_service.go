@@ -106,11 +106,31 @@ func (s *attemptService) SubmitExam(attemptID uint, userAnswers []ports.SubmitAn
 		return nil, err
 	}
 
+	if !exam.ShowScore {
+        attempt.Score = -1
+        attempt.MaxScore = -1
+    }
+
 	return attempt, nil
 }
 
 func (s *attemptService) GetStudentHistory(userID uint) ([]domain.ExamAttempt, error) {
-	return s.attemptRepo.FindByUser(userID)
+	attempts, err := s.attemptRepo.FindByUser(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// วนลูปเพื่อซ่อนคะแนน ถ้าครูปิดไว้
+	for i := range attempts {
+        // เช็คว่ามีข้อมูล Exam และ ShowScore เป็น false หรือไม่
+		if attempts[i].Exam.ID != 0 && !attempts[i].Exam.ShowScore {
+			attempts[i].Score = -1    // ใช้ -1 เป็นรหัสลับบอกว่า "ซ่อนคะแนน"
+			attempts[i].MaxScore = -1 // ซ่อนคะแนนเต็มด้วยก็ได้
+            // attempts[i].Answers = nil // (Optional) ซ่อนเฉลยด้วยถ้ามี
+		}
+	}
+
+	return attempts, nil
 }
 
 func (s *attemptService) GetExamResults(examID uint) ([]domain.ExamAttempt, error) {

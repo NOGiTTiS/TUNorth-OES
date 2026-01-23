@@ -7,6 +7,7 @@ type IExamService interface {
 	GetAllExams() ([]domain.Exam, error)
 	GetExamByID(id uint) (*domain.Exam, error)
 	GetExamsForStudent(userID uint) ([]domain.Exam, error) // สำหรับนักเรียน
+	UpdateExam(id uint, exam *domain.Exam, questionIDs []uint) error
 	DeleteExam(id uint) error                              // สำหรับลบ
 }
 
@@ -16,5 +17,6 @@ type IExamRepository interface {
 	FindByID(id uint) (*domain.Exam, error)
 	AddQuestions(examID uint, questionIDs []uint) error // เพิ่มข้อสอบเข้าชุด
 	FindByClass(classRoom string) ([]domain.Exam, error) // หาตามห้องเรียน
+	Update(exam *domain.Exam, questionIDs []uint) error
 	Delete(id uint) error
 }

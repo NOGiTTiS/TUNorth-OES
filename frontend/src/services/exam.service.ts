@@ -17,6 +17,11 @@ export const examService = {
     return response.data;
   },
 
+  update: async (id: number, data: CreateExamInput) => {
+    const response = await api.put(`/exams/${id}`, data);
+    return response.data;
+  },
+
   delete: async (id: number) => {
     const response = await api.delete(`/exams/${id}`);
     return response.data;

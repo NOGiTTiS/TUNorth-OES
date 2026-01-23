@@ -66,6 +66,22 @@ func (s *examService) GetExamsForStudent(userID uint) ([]domain.Exam, error) {
 	return s.repo.FindByClass(user.ClassRoom)
 }
 
+func (s *examService) UpdateExam(id uint, exam *domain.Exam, questionIDs []uint) error {
+	// Validation เหมือน Create
+	if exam.Title == "" {
+		return errors.New("title is required")
+	}
+	if exam.StartTime.After(exam.EndTime) {
+		return errors.New("start time must be before end time")
+	}
+	if len(questionIDs) == 0 {
+		return errors.New("exam must have at least 1 question")
+	}
+
+	exam.ID = id // ระบุ ID ที่จะแก้
+	return s.repo.Update(exam, questionIDs)
+}
+
 func (s *examService) DeleteExam(id uint) error {
 	return s.repo.Delete(id)
 }

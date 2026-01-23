@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Clock, CheckCircle, Lock, AlertOctagon } from "lucide-react";
 import { addMinutes, differenceInSeconds } from "date-fns";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,10 +57,10 @@ export default function ExamRoomPage({ params }: PageProps) {
 
   // State ป้องกันการโกง
   const [cheatCount, setCheatCount] = useState(0);
-  const [showWarning, setShowWarning] = useState(false); // เตือนครั้งที่ 1-2
-  const [isBanned, setIsBanned] = useState(false);     // โดนแบนครั้งที่ 3
+  const [showWarning, setShowWarning] = useState(false);
+  const [isBanned, setIsBanned] = useState(false);
 
-  // Refs: ใช้เก็บค่าล่าสุดเสมอ เพื่อให้ Event Listener มองเห็นค่าปัจจุบัน (แก้ปัญหา State ไม่อัปเดต)
+  // Refs
   const answersRef = useRef<Record<number, number>>({});
   const attemptRef = useRef<ExamAttempt | null>(null);
   const cheatCountRef = useRef(0);
@@ -67,19 +68,16 @@ export default function ExamRoomPage({ params }: PageProps) {
   const STORAGE_KEY_ANSWERS = `exam_${examId}_answers`;
   const STORAGE_KEY_CHEAT = `exam_${examId}_cheat_count`;
 
-  // อัปเดต Refs เมื่อ State เปลี่ยน
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { attemptRef.current = attempt; }, [attempt]);
   useEffect(() => { cheatCountRef.current = cheatCount; }, [cheatCount]);
 
-  // ฟังก์ชันส่งข้อสอบ (ย้ายมาไว้ข้างบน และใช้ useCallback เพื่อให้เรียกใช้ได้ทั่วถึง)
   const handleSubmit = useCallback(async (isAuto = false) => {
     const currentAttempt = attemptRef.current;
     const currentAnswers = answersRef.current;
 
     if (!currentAttempt) return;
     
-    // เตรียมข้อมูลส่ง
     const answerList: ExamAnswer[] = Object.entries(currentAnswers).map(([qId, cId]) => ({
       question_id: parseInt(qId),
       choice_id: cId,
@@ -92,7 +90,6 @@ export default function ExamRoomPage({ params }: PageProps) {
       if (timerRef.current) clearInterval(timerRef.current);
 
       if (isAuto) {
-        // แจ้งเตือนตามสาเหตุ
         if (cheatCountRef.current >= 3) {
             toast.error("ส่งข้อสอบอัตโนมัติเนื่องจากทำผิดกฎการสอบ");
         } else {
@@ -104,7 +101,6 @@ export default function ExamRoomPage({ params }: PageProps) {
 
       setResult({ score: res.score, max: res.max_score });
       
-      // Cleanup
       localStorage.removeItem(STORAGE_KEY_ANSWERS);
       localStorage.removeItem(STORAGE_KEY_CHEAT);
 
@@ -116,9 +112,9 @@ export default function ExamRoomPage({ params }: PageProps) {
       toast.error("การส่งข้อสอบขัดข้อง กรุณากดส่งใหม่อีกครั้ง");
       setLoading(false);
     }
-  }, [examId, STORAGE_KEY_ANSWERS, STORAGE_KEY_CHEAT]); // Dependencies
+  }, [examId, STORAGE_KEY_ANSWERS, STORAGE_KEY_CHEAT]);
 
-  // 1. Initial Load
+  // Initial Load
   useEffect(() => {
     const initExam = async () => {
       try {
@@ -131,15 +127,14 @@ export default function ExamRoomPage({ params }: PageProps) {
         if (savedCheat) {
             const count = parseInt(savedCheat);
             setCheatCount(count);
-            // ถ้าโหลดมาแล้วพบว่าเคยโกงครบ 3 ครั้ง ให้แบนทันที
             if (count >= 3) setIsBanned(true);
         }
 
         const examData = await examService.getById(examId);
         const attemptData = await attemptService.start(examId);
 
-        // Randomize
-        if (examData.questions) {
+        // Randomize Check
+        if (examData.questions && examData.is_random) {
             examData.questions = shuffleArray(examData.questions);
             examData.questions.forEach(q => {
                 if (q.choices) q.choices = shuffleArray(q.choices);
@@ -155,7 +150,6 @@ export default function ExamRoomPage({ params }: PageProps) {
             return;
         }
 
-        // ถ้าเข้ามาแล้วพบว่าโดนแบนอยู่ ให้บังคับส่งเลย
         if (cheatCountRef.current >= 3) {
             handleSubmit(true);
             return;
@@ -195,32 +189,27 @@ export default function ExamRoomPage({ params }: PageProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examId, router]); 
 
-  // 2. Anti-Cheating (แก้ไขใหม่ใช้ Refs)
+  // Anti-Cheating
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // เพิ่มจำนวนครั้ง
         const newCount = cheatCountRef.current + 1;
         setCheatCount(newCount);
         localStorage.setItem(STORAGE_KEY_CHEAT, newCount.toString());
 
         if (newCount >= 3) {
-            // ครบ 3 ครั้ง -> แบนและบังคับส่ง
             setIsBanned(true);
-            handleSubmit(true); // เรียก Submit ทันที
+            handleSubmit(true);
         } else {
-            // ยังไม่ครบ -> แสดงเตือน
             setShowWarning(true);
         }
       }
     };
 
-    // ป้องกันคลิกขวา/ก็อปปี้
     const preventDefault = (e: Event) => e.preventDefault();
     document.addEventListener("contextmenu", preventDefault);
     document.addEventListener("copy", preventDefault);
     document.addEventListener("cut", preventDefault);
-    
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
@@ -231,7 +220,6 @@ export default function ExamRoomPage({ params }: PageProps) {
     };
   }, [handleSubmit, STORAGE_KEY_CHEAT]);
 
-  // Handle Answer Selection
   const handleSelectAnswer = (qId: number, cId: number) => {
     if (isBanned || loading) return;
 
@@ -247,8 +235,6 @@ export default function ExamRoomPage({ params }: PageProps) {
     const s = seconds % 60;
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
-
-  // --- UI ---
 
   if (loading) {
     return (
@@ -267,10 +253,22 @@ export default function ExamRoomPage({ params }: PageProps) {
         <CheckCircle className="h-20 w-20 text-green-500" />
         <h2 className="text-3xl font-bold text-gray-900">การสอบเสร็จสิ้น</h2>
         <Card className="w-full max-w-md text-center p-6">
-          <p className="text-gray-500 mb-2">คะแนนของคุณ</p>
-          <div className="text-6xl font-bold text-blue-600 mb-4">
-            {result.score} <span className="text-2xl text-gray-400">/ {result.max}</span>
-          </div>
+          
+          {/* Check Show Score Setting */}
+          {result.score !== -1 ? (
+              <>
+                <p className="text-gray-500 mb-2">คะแนนของคุณ</p>
+                <div className="text-6xl font-bold text-blue-600 mb-4">
+                    {result.score} <span className="text-2xl text-gray-400">/ {result.max}</span>
+                </div>
+              </>
+          ) : (
+              <div className="py-6">
+                  <p className="text-lg text-gray-700">ระบบได้รับคำตอบของคุณเรียบร้อยแล้ว</p>
+                  <p className="text-sm text-gray-500 mt-2">คะแนนจะประกาศให้ทราบภายหลัง</p>
+              </div>
+          )}
+
           {cheatCount > 0 && (
              <div className="text-red-500 text-sm mt-4 bg-red-50 p-2 rounded border border-red-100">
                 หมายเหตุ: ตรวจพบการสลับหน้าจอ {cheatCount} ครั้ง
@@ -287,7 +285,6 @@ export default function ExamRoomPage({ params }: PageProps) {
   return (
     <div className={`flex flex-col lg:flex-row gap-6 relative select-none ${isBanned ? 'pointer-events-none opacity-50' : ''}`}>
       
-      {/* Alert 1: เตือนเมื่อสลับหน้าจอ (ครั้งที่ 1-2) */}
       <AlertDialog open={showWarning && !isBanned}>
         <AlertDialogContent>
             <AlertDialogHeader>
@@ -314,7 +311,6 @@ export default function ExamRoomPage({ params }: PageProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Alert 2: โดนแบน (ครั้งที่ 3) - ปิดไม่ได้ */}
       <AlertDialog open={isBanned}>
         <AlertDialogContent>
             <AlertDialogHeader>
@@ -330,7 +326,6 @@ export default function ExamRoomPage({ params }: PageProps) {
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="sm:justify-center">
-                {/* ปุ่มนี้เผื่อ Auto Submit ไม่ทำงาน หรือเน็ตค้าง */}
                 <Button 
                     onClick={() => handleSubmit(true)} 
                     disabled={loading}
@@ -359,7 +354,17 @@ export default function ExamRoomPage({ params }: PageProps) {
                     </span>
                     <span>{q.content}</span>
                  </div>
-                 {/* ... Image ... */}
+                 {q.image_url && (
+                    <div className="ml-11 relative h-60 w-full max-w-md rounded-lg overflow-hidden border bg-slate-50">
+                        <Image 
+                            src={q.image_url} 
+                            alt="Question Image" 
+                            fill 
+                            className="object-contain"
+                            sizes="(max-width: 768px) 100vw, 500px"
+                        />
+                    </div>
+                 )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -370,16 +375,27 @@ export default function ExamRoomPage({ params }: PageProps) {
                 {q.choices.map((c) => (
                   <div 
                     key={c.ID} 
-                    onClick={() => handleSelectAnswer(q.ID, c.ID!)}
-                    className={`flex items-start space-x-2 border p-3 rounded-lg cursor-pointer transition-colors ${
+                    onClick={() => !isBanned && handleSelectAnswer(q.ID, c.ID!)}
+                    className={`flex items-start space-x-2 border p-3 rounded-lg transition-colors ${
                       answers[q.ID] === c.ID ? 'bg-blue-50 border-blue-300' : 'hover:bg-slate-50'
-                    }`}
+                    } ${isBanned ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
                   >
                     <RadioGroupItem value={c.ID!.toString()} id={`c-${c.ID}`} className="mt-1" />
                     <div className="flex-1">
-                        <Label htmlFor={`c-${c.ID}`} className="cursor-pointer font-normal block leading-relaxed">
+                        <Label htmlFor={`c-${c.ID}`} className={`font-normal block leading-relaxed ${isBanned ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                           {c.content}
                         </Label>
+                        {c.image_url && (
+                            <div className="mt-2 relative h-32 w-32 rounded-md overflow-hidden border">
+                                <Image 
+                                    src={c.image_url} 
+                                    alt="Choice Image" 
+                                    fill 
+                                    className="object-cover"
+                                    sizes="150px"
+                                />
+                            </div>
+                        )}
                     </div>
                   </div>
                 ))}
@@ -435,7 +451,7 @@ export default function ExamRoomPage({ params }: PageProps) {
                 if(!confirm("ยืนยันการส่งข้อสอบ?")) return;
                 handleSubmit(false);
             }}
-            disabled={loading}
+            disabled={loading || isBanned}
           >
             ส่งข้อสอบ
           </Button>

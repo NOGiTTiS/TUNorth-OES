@@ -18,6 +18,9 @@ type Exam struct {
 	EndTime     time.Time `json:"end_time" example:"2026-03-01T12:00:00Z"`
 	TargetClasses pq.StringArray `gorm:"type:text[]" json:"target_classes"` 
 	
+	IsRandom    bool           `gorm:"default:true" json:"is_random"`   // เปิด-ปิด สุ่ม
+	ShowScore   bool           `gorm:"default:true" json:"show_score"`  // เปิด-ปิด แสดงคะแนน
+
 	// Relation: ชุดนี้มีข้อสอบอะไรบ้าง
 	Questions   []Question `gorm:"many2many:exam_questions;" json:"questions,omitempty"`
 }

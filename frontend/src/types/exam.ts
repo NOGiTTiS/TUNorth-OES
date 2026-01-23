@@ -12,6 +12,8 @@ export interface Exam {
   end_time: string;
   questions?: Question[];
   target_classes?: string[]; 
+  is_random: boolean;
+  show_score: boolean;
 }
 
 export interface CreateExamInput {
@@ -23,4 +25,6 @@ export interface CreateExamInput {
   end_time: string;
   question_ids: number[];
   target_classes: string[];
+  is_random: boolean;
+  show_score: boolean;
 }

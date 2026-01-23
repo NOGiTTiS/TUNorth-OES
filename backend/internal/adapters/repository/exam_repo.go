@@ -21,7 +21,10 @@ func (r *examRepo) Create(exam *domain.Exam) error {
 func (r *examRepo) FindAll() ([]domain.Exam, error) {
 	var exams []domain.Exam
 	// Preload Subject เพื่อให้รู้ว่าเป็นวิชาอะไร
-	err := r.db.Preload("Subject").Order("created_at desc").Find(&exams).Error
+	err := r.db.Preload("Subject").
+		Preload("Questions"). // <--- เพิ่มบรรทัดนี้ เพื่อให้นับจำนวนข้อได้
+		Order("created_at desc").
+		Find(&exams).Error
 	return exams, err
 }
 
@@ -54,11 +57,47 @@ func (r *examRepo) FindByClass(classRoom string) ([]domain.Exam, error) {
 	var exams []domain.Exam
 	// SQL: WHERE '4.1' = ANY(target_classes)
 	// เป็น Syntax เฉพาะของ Postgres ในการหาค่าใน Array
-	err := r.db.Preload("Subject").Where("? = ANY(target_classes)", classRoom).Order("created_at desc").Find(&exams).Error
+	err := r.db.Preload("Subject").
+		Preload("Questions"). // <--- เพิ่มบรรทัดนี้
+		Where("? = ANY(target_classes)", classRoom).
+		Order("created_at desc").
+		Find(&exams).Error
 	return exams, err
 }
 
-// เพิ่มฟังก์ชันลบ
+func (r *examRepo) Update(exam *domain.Exam, questionIDs []uint) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		
+		// 1. แก้ไขส่วนนี้: เปลี่ยนจาก Updates(exam) เป็น map
+		// เพื่อบังคับให้บันทึกค่า false ของ IsRandom และ ShowScore
+		if err := tx.Model(exam).Updates(map[string]interface{}{
+			"title":          exam.Title,
+			"description":    exam.Description,
+			"subject_id":     exam.SubjectID,
+			"duration":       exam.Duration,
+			"start_time":     exam.StartTime,
+			"end_time":       exam.EndTime,
+			"target_classes": exam.TargetClasses,
+			"is_random":      exam.IsRandom,  // ส่ง false ก็จะบันทึก
+			"show_score":     exam.ShowScore, // ส่ง false ก็จะบันทึก
+		}).Error; err != nil {
+			return err
+		}
+
+		// 2. อัปเดตรายการข้อสอบ (ส่วนนี้เหมือนเดิม ไม่ต้องแก้)
+		var questions []domain.Question
+		for _, qID := range questionIDs {
+			questions = append(questions, domain.Question{Model: gorm.Model{ID: qID}})
+		}
+
+		if err := tx.Model(exam).Association("Questions").Replace(questions); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
 func (r *examRepo) Delete(id uint) error {
 	// ลบ Exam (Cascade จะลบ ExamQuestions ให้เองถ้าตั้งไว้ หรือ GORM จัดการให้)
 	return r.db.Delete(&domain.Exam{}, id).Error

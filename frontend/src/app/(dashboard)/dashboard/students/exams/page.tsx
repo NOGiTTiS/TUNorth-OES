@@ -113,7 +113,7 @@ export default function StudentExamListPage() {
                           </div>
                           <div className="flex items-center gap-2">
                               <BookOpen className="h-4 w-4 text-purple-500" />
-                              <span>{exam.questions?.length || "?"} ข้อ</span>
+                              <span>{exam.questions?.length || "0"} ข้อ</span>
                           </div>
                       </CardContent>
                       <CardFooter className="pt-0">
