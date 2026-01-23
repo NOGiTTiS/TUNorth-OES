@@ -20,13 +20,13 @@ func NewExamHandler(service ports.IExamService) *ExamHandler {
 
 // DTO สำหรับรับข้อมูล
 type CreateExamRequest struct {
-	SubjectID   uint      `json:"subject_id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Duration    int       `json:"duration"` // นาที
-	StartTime   string    `json:"start_time" example:"2026-03-01T09:00:00+07:00"` // รับเป็น String ISO8601
-	EndTime     string    `json:"end_time" example:"2026-03-01T12:00:00+07:00"`
-	QuestionIDs []uint    `json:"question_ids"` // รายการ ID ข้อสอบที่จะเอามาใส่
+	SubjectID     uint     `json:"subject_id"`
+	Title         string   `json:"title"`
+	Description   string   `json:"description"`
+	Duration      int      `json:"duration"`                                       // นาที
+	StartTime     string   `json:"start_time" example:"2026-03-01T09:00:00+07:00"` // รับเป็น String ISO8601
+	EndTime       string   `json:"end_time" example:"2026-03-01T12:00:00+07:00"`
+	QuestionIDs   []uint   `json:"question_ids"` // รายการ ID ข้อสอบที่จะเอามาใส่
 	TargetClasses []string `json:"target_classes"`
 	IsRandom      bool     `json:"is_random"`
 	ShowScore     bool     `json:"show_score"`
@@ -71,9 +71,9 @@ func (h *ExamHandler) CreateExam(c *fiber.Ctx) error {
 		TargetClasses: req.TargetClasses,
 		IsRandom:      req.IsRandom,
 		ShowScore:     req.ShowScore,
-		
+
 		// 2. ต้องนำ userID มาใส่ตรงนี้ครับ Error ถึงจะหาย
-		CreatedByID:   userID, 
+		CreatedByID: userID,
 	}
 
 	if err := h.service.CreateExam(&exam, req.QuestionIDs); err != nil {
@@ -99,30 +99,22 @@ func (h *ExamHandler) GetAllExams(c *fiber.Ctx) error {
 	userID := uint(claims["user_id"].(float64))
 
 	// 2. แยก Logic ตาม Role
-	if role == "admin" {
-		// Admin: ส่ง 0 ไปเพื่อบอกว่าขอทั้งหมด
-		exams, err := h.service.GetAllExams(0)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-		}
-		return c.JSON(exams)
-	} 
-	
-	if role == "teacher" {
-		// Teacher: ส่ง userID ตัวเองไปเพื่อกรองเฉพาะที่ตัวเองสร้าง
-		exams, err := h.service.GetAllExams(userID)
+	if role == "student" {
+		// Student: กรองตามห้องเรียน (ใช้ userID หาห้องเรียน)
+		exams, err := h.service.GetExamsForStudent(userID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.JSON(exams)
 	}
 
-	// Student: กรองตามห้องเรียน (ใช้ userID หาห้องเรียน)
-	exams, err := h.service.GetExamsForStudent(userID)
+	// Admin & Teacher: ให้ Service ตัดสินใจ based on Access Control Settings
+	exams, err := h.service.GetAllExams(userID, role)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(exams)
+
 }
 
 // UpdateExam godoc
@@ -138,7 +130,7 @@ func (h *ExamHandler) GetAllExams(c *fiber.Ctx) error {
 func (h *ExamHandler) UpdateExam(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 	req := new(CreateExamRequest)
-	
+
 	if err := c.BodyParser(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
 	}
@@ -181,12 +173,12 @@ func (h *ExamHandler) UpdateExam(c *fiber.Ctx) error {
 // @Router       /exams/{id} [delete]
 func (h *ExamHandler) DeleteExam(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
-	
+
 	// เรียกใช้ Service (Error "declared and not used" จะหายไป)
 	if err := h.service.DeleteExam(uint(id)); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	
+
 	return c.JSON(fiber.Map{"message": "Exam deleted successfully"})
 }
 

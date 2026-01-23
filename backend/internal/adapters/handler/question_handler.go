@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/domain"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/ports"
 )
@@ -32,8 +33,8 @@ type CreateQuestionRequest struct {
 }
 
 type BulkCreateQuestionRequest struct {
-    SubjectID uint                    `json:"subject_id"`
-    Questions []CreateQuestionRequest `json:"questions"` // ใช้ struct เดิมมาเป็น array
+	SubjectID uint                    `json:"subject_id"`
+	Questions []CreateQuestionRequest `json:"questions"` // ใช้ struct เดิมมาเป็น array
 }
 
 // CreateQuestion godoc
@@ -53,6 +54,11 @@ func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
+	// 1. Extract UserID
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	userID := uint(claims["user_id"].(float64))
+
 	// แปลง Request DTO เป็น Domain Model
 	choices := make([]domain.Choice, len(req.Choices))
 	for i, ch := range req.Choices {
@@ -64,12 +70,13 @@ func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 	}
 
 	question := domain.Question{
-		SubjectID:  req.SubjectID,
-		Content:    req.Content,
-		ImageURL:   req.ImageURL,
-		Type:       domain.MCQ,
-		Difficulty: req.Difficulty,
-		Choices:    choices,
+		SubjectID:   req.SubjectID,
+		Content:     req.Content,
+		ImageURL:    req.ImageURL,
+		Type:        domain.MCQ,
+		Difficulty:  req.Difficulty,
+		Choices:     choices,
+		CreatedByID: userID,
 	}
 
 	if err := h.service.CreateQuestion(&question); err != nil {
@@ -90,7 +97,15 @@ func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 // @Router       /questions/subject/{subjectId} [get]
 func (h *QuestionHandler) GetQuestionsBySubject(c *fiber.Ctx) error {
 	subjectID, _ := strconv.Atoi(c.Params("subjectId"))
-	questions, err := h.service.GetQuestionsBySubjectID(uint(subjectID))
+
+	// 1. Extract User Info
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	role := claims["role"].(string)
+	userID := uint(claims["user_id"].(float64))
+
+	// 2. Pass to Service
+	questions, err := h.service.GetQuestionsBySubjectID(uint(subjectID), userID, role)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -114,7 +129,7 @@ func (h *QuestionHandler) UpdateQuestion(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
-    // แปลง DTO เป็น Domain
+	// แปลง DTO เป็น Domain
 	choices := make([]domain.Choice, len(req.Choices))
 	for i, ch := range req.Choices {
 		choices[i] = domain.Choice{
@@ -166,39 +181,45 @@ func (h *QuestionHandler) DeleteQuestion(c *fiber.Ctx) error {
 // @Success      201  {object} map[string]interface{}
 // @Router       /questions/bulk [post]
 func (h *QuestionHandler) BulkCreateQuestions(c *fiber.Ctx) error {
-    req := new(BulkCreateQuestionRequest)
-    if err := c.BodyParser(req); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
-    }
+	req := new(BulkCreateQuestionRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
+	}
 
-    var questions []domain.Question
-    for _, qReq := range req.Questions {
-        // แปลง DTO เป็น Domain
-        choices := make([]domain.Choice, len(qReq.Choices))
-        for i, ch := range qReq.Choices {
-            choices[i] = domain.Choice{
-                Content:   ch.Content,
-                ImageURL:  ch.ImageURL,
-                IsCorrect: ch.IsCorrect,
-            }
-        }
+	// 1. Extract UserID
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	userID := uint(claims["user_id"].(float64))
 
-        questions = append(questions, domain.Question{
-            SubjectID:  req.SubjectID, // ใช้ Subject ID เดียวกันหมด
-            Content:    qReq.Content,
-            ImageURL:   qReq.ImageURL,
-            Type:       domain.MCQ,
-            Difficulty: qReq.Difficulty,
-            Choices:    choices,
-        })
-    }
+	var questions []domain.Question
+	for _, qReq := range req.Questions {
+		// แปลง DTO เป็น Domain
+		choices := make([]domain.Choice, len(qReq.Choices))
+		for i, ch := range qReq.Choices {
+			choices[i] = domain.Choice{
+				Content:   ch.Content,
+				ImageURL:  ch.ImageURL,
+				IsCorrect: ch.IsCorrect,
+			}
+		}
 
-    if err := h.service.CreateQuestionsBulk(questions); err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-    }
+		questions = append(questions, domain.Question{
+			SubjectID:   req.SubjectID, // ใช้ Subject ID เดียวกันหมด
+			Content:     qReq.Content,
+			ImageURL:    qReq.ImageURL,
+			Type:        domain.MCQ,
+			Difficulty:  qReq.Difficulty,
+			Choices:     choices,
+			CreatedByID: userID,
+		})
+	}
 
-    return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-        "message": "Imported successfully",
-        "count":   len(questions),
-    })
+	if err := h.service.CreateQuestionsBulk(questions); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "Imported successfully",
+		"count":   len(questions),
+	})
 }

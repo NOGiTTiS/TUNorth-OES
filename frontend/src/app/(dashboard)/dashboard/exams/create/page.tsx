@@ -400,7 +400,7 @@ function CreateExamForm() {
                     <CardHeader className="pb-3">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <CardTitle>ห้องเรียนที่มีสิทธิ์สอบ</CardTitle>
-                            <Button type="button" variant="outline" size="sm" onClick={toggleSelectVisibleClasses} className="h-8 text-xs whitespace-nowrap w-full sm:w-auto text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                            <Button type="button" variant="outline" size="sm" onClick={toggleSelectVisibleClasses} className="h-8 text-xs whitespace-nowrap w-full sm:w-auto text-primary hover:text-primary/80 hover:bg-primary/10">
                                 {isAllSelected ? <><CheckSquare className="mr-2 h-3 w-3" /> ยกเลิก ม.{selectedGrade} ทั้งหมด</> : <><Square className="mr-2 h-3 w-3" /> เลือก ม.{selectedGrade} ทั้งหมด</>}
                             </Button>
                         </div>
@@ -446,7 +446,7 @@ function CreateExamForm() {
                             />
                             
                             <div className="mt-3 text-xs text-gray-500 text-right">
-                                รวมห้องเรียนที่เลือกทั้งหมด: <span className="font-bold text-blue-600">{form.watch("target_classes")?.length || 0}</span> ห้อง
+                                รวมห้องเรียนที่เลือกทั้งหมด: <span className="font-bold text-primary">{form.watch("target_classes")?.length || 0}</span> ห้อง
                             </div>
                         </Tabs>
                     </CardContent>
@@ -458,7 +458,7 @@ function CreateExamForm() {
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle>เลือกข้อสอบ</CardTitle>
                 <div className="flex items-center gap-2">
-                    <Button type="button" variant="ghost" size="sm" onClick={toggleSelectAllQuestions} disabled={questions.length === 0} className="h-8 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={toggleSelectAllQuestions} disabled={questions.length === 0} className="h-8 text-xs text-primary hover:text-primary/80 hover:bg-primary/10 px-2">
                         {isAllQuestionsSelected ? <><CheckSquare className="mr-1.5 h-3.5 w-3.5" /> ยกเลิกทั้งหมด</> : <><Square className="mr-1.5 h-3.5 w-3.5" /> เลือกทั้งหมด</>}
                     </Button>
                     <Badge variant="secondary" className="hidden sm:flex">
@@ -524,7 +524,7 @@ function CreateExamForm() {
              <Button type="button" variant="outline" onClick={() => router.back()}>
                 ยกเลิก
              </Button>
-             <Button type="submit" className="bg-blue-600 hover:bg-blue-700 min-w-[150px]">
+             <Button type="submit" className="bg-primary hover:bg-primary/80 min-w-[150px]">
                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Save className="mr-2 h-4 w-4" />
                 {editId ? "บันทึกการแก้ไข" : "บันทึกชุดข้อสอบ"}
@@ -540,7 +540,7 @@ function CreateExamForm() {
 // Main Page Component Wrapper with Suspense
 export default function CreateExamPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-blue-600" /></div>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}>
       <CreateExamForm />
     </Suspense>
   );

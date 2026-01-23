@@ -29,6 +29,10 @@ type SystemSetting struct {
 	CloudinaryCloudName string `gorm:"type:varchar(255)" json:"cloudinary_cloud_name"`
 	CloudinaryApiKey    string `gorm:"type:varchar(255)" json:"cloudinary_api_key"`
 	CloudinaryApiSecret string `gorm:"type:varchar(255)" json:"cloudinary_api_secret"`
+
+	// Access Control (Privacy)
+	TeacherCanSeeAllExams    bool `gorm:"default:true" json:"teacher_can_see_all_exams"`   // true = Shared, false = Private
+	TeacherShareQuestionBank bool `gorm:"default:true" json:"teacher_share_question_bank"` // true = Shared, false = Private
 }
 
 func (SystemSetting) TableName() string {

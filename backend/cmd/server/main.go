@@ -16,6 +16,7 @@ import (
 	scalar "github.com/yokeTH/gofiber-scalar"
 
 	// Import packages ของเรา
+
 	"github.com/nogittis/tunorth-oes-backend/internal/adapters/gateway"
 	"github.com/nogittis/tunorth-oes-backend/internal/adapters/handler"
 	"github.com/nogittis/tunorth-oes-backend/internal/adapters/repository"
@@ -68,14 +69,19 @@ func main() {
 	subjectService := services.NewSubjectService(subjectRepo)
 	subjectHandler := handler.NewSubjectHandler(subjectService)
 
+	// System Setting Dependency (Move Up)
+	systemSettingRepo := repository.NewSystemSettingRepository(db)
+	systemSettingService := services.NewSystemSettingService(systemSettingRepo)
+	systemSettingHandler := handler.NewSystemSettingHandler(systemSettingService)
+
 	// Question Dependency
 	questionRepo := repository.NewQuestionRepository(db)
-	questionService := services.NewQuestionService(questionRepo)
+	questionService := services.NewQuestionService(questionRepo, systemSettingService)
 	questionHandler := handler.NewQuestionHandler(questionService)
 
 	// Exam Dependency
 	examRepo := repository.NewExamRepository(db)
-	examService := services.NewExamService(examRepo, userRepo)
+	examService := services.NewExamService(examRepo, userRepo, systemSettingService)
 	examHandler := handler.NewExamHandler(examService)
 
 	// Attempt Dependency
@@ -87,11 +93,6 @@ func main() {
 	// Cloudinary
 	cloudService, _ := gateway.NewCloudinaryService() // Error handling จริงๆ ควรทำดีกว่านี้
 	uploadHandler := handler.NewUploadHandler(cloudService)
-
-	// System Setting Dependency
-	systemSettingRepo := repository.NewSystemSettingRepository(db)
-	systemSettingService := services.NewSystemSettingService(systemSettingRepo)
-	systemSettingHandler := handler.NewSystemSettingHandler(systemSettingService)
 
 	// Setup Fiber App
 	app := fiber.New(fiber.Config{

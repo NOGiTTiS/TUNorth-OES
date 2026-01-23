@@ -55,6 +55,10 @@ const settingsSchema = z.object({
   bg_gradient_end: z.string().optional().or(z.literal("")),
   style: z.enum(["default", "glassmorphism", "neumorphism"]),
 
+  // Access Control
+  teacher_can_see_all_exams: z.boolean(),
+  teacher_share_question_bank: z.boolean(),
+
   // Storage
   cloudinary_cloud_name: z.string().optional().or(z.literal("")),
   cloudinary_api_key: z.string().optional().or(z.literal("")),
@@ -80,6 +84,8 @@ export default function SettingsPage() {
       bg_gradient_start: "",
       bg_gradient_end: "",
       style: "default",
+      teacher_can_see_all_exams: true,
+      teacher_share_question_bank: true,
       cloudinary_cloud_name: "",
       cloudinary_api_key: "",
       cloudinary_api_secret: "",
@@ -123,8 +129,9 @@ export default function SettingsPage() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="privacy">Privacy</TabsTrigger>
               <TabsTrigger value="images">Images</TabsTrigger>
               <TabsTrigger value="theme">Theme</TabsTrigger>
               <TabsTrigger value="storage">Storage</TabsTrigger>
@@ -189,6 +196,65 @@ export default function SettingsPage() {
                           </FormLabel>
                           <FormDescription>
                             Allow new users to register.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="privacy">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Access Control & Privacy</CardTitle>
+                  <CardDescription>
+                    Manage data visibility and sharing scope for teachers.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="teacher_can_see_all_exams"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            Teachers can see ALL Exams
+                          </FormLabel>
+                          <FormDescription>
+                            If disabled, teachers will ONLY see exams they
+                            created.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="teacher_share_question_bank"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            Global Question Bank (Shared)
+                          </FormLabel>
+                          <FormDescription>
+                            If disabled, teachers will ONLY see questions they
+                            created in the subject bank.
                           </FormDescription>
                         </div>
                         <FormControl>

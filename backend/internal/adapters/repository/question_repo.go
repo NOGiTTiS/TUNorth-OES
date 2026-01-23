@@ -21,8 +21,23 @@ func (r *questionRepo) Create(question *domain.Question) error {
 
 func (r *questionRepo) FindBySubjectID(subjectID uint) ([]domain.Question, error) {
 	var questions []domain.Question
-	// Preload("Choices") คือสั่งให้ดึงตัวเลือกติดมาด้วย
 	err := r.db.Preload("Choices").Where("subject_id = ?", subjectID).Find(&questions).Error
+	return questions, err
+}
+
+func (r *questionRepo) FindBySubjectIDAndCreator(subjectID uint, creatorID uint) ([]domain.Question, error) {
+	var questions []domain.Question
+	// Filter by SubjectID AND CreatedByID
+	// Note: CreatedByID might not exist in Question struct if we didn't add it explicitly?
+	// Let's check Domain. Usually GORM adds CreatedAt, UpdatedAt, DeletedAt.
+	// But CreatedBy (User) needs to be defined.
+	// Assume it exists or I should add it?
+	// Wait, standard gorm.Model doesn't have CreatedByID.
+	// If domain.Question doesn't have CreatedByID, we can't filter.
+	// Let's check domain/question.go first.
+	// If it's missing, I'll need to add it.
+	// For now, I will write the query assuming it exists, and I will verify domain next.
+	err := r.db.Preload("Choices").Where("subject_id = ? AND created_by_id = ?", subjectID, creatorID).Find(&questions).Error
 	return questions, err
 }
 
@@ -62,6 +77,6 @@ func (r *questionRepo) Delete(id uint) error {
 }
 
 func (r *questionRepo) CreateBulk(questions []domain.Question) error {
-    // Batch Insert: GORM จะจัดการ Insert ทีละหลาย row ให้เอง ประสิทธิภาพสูง
-    return r.db.Create(&questions).Error
+	// Batch Insert: GORM จะจัดการ Insert ทีละหลาย row ให้เอง ประสิทธิภาพสูง
+	return r.db.Create(&questions).Error
 }

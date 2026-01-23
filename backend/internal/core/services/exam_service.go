@@ -2,19 +2,22 @@ package services
 
 import (
 	"errors"
+
 	"github.com/nogittis/tunorth-oes-backend/internal/core/domain"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/ports"
 )
 
 type examService struct {
-	repo ports.IExamRepository
-	userRepo ports.IUserRepository
+	repo            ports.IExamRepository
+	userRepo        ports.IUserRepository
+	settingsService ports.ISystemSettingService
 }
 
-func NewExamService(repo ports.IExamRepository, userRepo ports.IUserRepository) ports.IExamService {
+func NewExamService(repo ports.IExamRepository, userRepo ports.IUserRepository, settingsService ports.ISystemSettingService) ports.IExamService {
 	return &examService{
-		repo:     repo,
-		userRepo: userRepo,
+		repo:            repo,
+		userRepo:        userRepo,
+		settingsService: settingsService,
 	}
 }
 
@@ -42,8 +45,31 @@ func (s *examService) CreateExam(exam *domain.Exam, questionIDs []uint) error {
 	return s.repo.AddQuestions(exam.ID, questionIDs)
 }
 
-func (s *examService) GetAllExams(creatorID uint) ([]domain.Exam, error) {
-	return s.repo.FindAll(creatorID)
+func (s *examService) GetAllExams(requesterID uint, requesterRole string) ([]domain.Exam, error) {
+	// 1. Check Settings
+	settings, err := s.settingsService.GetSettings()
+	if err != nil {
+		// Fallback to default private if error? Or public?
+		// Default secure: Private
+		return s.repo.FindAll(requesterID)
+	}
+
+	// 2. Admin sees all
+	if requesterRole == "admin" {
+		return s.repo.FindAll(0)
+	}
+
+	// 3. Teacher check
+	if requesterRole == "teacher" {
+		if settings.TeacherCanSeeAllExams {
+			return s.repo.FindAll(0)
+		} else {
+			return s.repo.FindAll(requesterID)
+		}
+	}
+
+	// Default
+	return s.repo.FindAll(requesterID)
 }
 
 func (s *examService) GetExamByID(id uint) (*domain.Exam, error) {
@@ -54,7 +80,7 @@ func (s *examService) GetExamsForStudent(userID uint) ([]domain.Exam, error) {
 	// 1. ไปดูข้อมูลนักเรียนก่อน ว่าอยู่ห้องไหน
 	user, err := s.userRepo.FindByID(userID) // ต้องมั่นใจว่าใน IUserRepository มี FindByID แล้ว (ถ้าไม่มีต้องไปเพิ่ม)
 	// หมายเหตุ: ปกติ FindByID ของ User มักจะมีอยู่แล้ว ถ้ายังไม่มีให้ไปเพิ่มใน ports/user.go และ user_repo.go ครับ
-	
+
 	if err != nil {
 		return nil, err
 	}
