@@ -42,8 +42,8 @@ func (s *examService) CreateExam(exam *domain.Exam, questionIDs []uint) error {
 	return s.repo.AddQuestions(exam.ID, questionIDs)
 }
 
-func (s *examService) GetAllExams() ([]domain.Exam, error) {
-	return s.repo.FindAll()
+func (s *examService) GetAllExams(creatorID uint) ([]domain.Exam, error) {
+	return s.repo.FindAll(creatorID)
 }
 
 func (s *examService) GetExamByID(id uint) (*domain.Exam, error) {

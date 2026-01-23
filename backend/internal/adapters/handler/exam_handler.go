@@ -40,7 +40,6 @@ type CreateExamRequest struct {
 // @Param        request body CreateExamRequest true "ข้อมูลชุดข้อสอบ"
 // @Security     ApiKeyAuth
 // @Success      201  {object} domain.Exam
-// @Failure      400  {object} map[string]interface{}
 // @Router       /exams [post]
 func (h *ExamHandler) CreateExam(c *fiber.Ctx) error {
 	req := new(CreateExamRequest)
@@ -48,26 +47,33 @@ func (h *ExamHandler) CreateExam(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
-	// แปลงเวลาจาก String เป็น time.Time
+	// 1. ประกาศตัวแปร userID (ต้นเหตุของ Error ถ้าไม่เอาไปใช้)
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	userID := uint(claims["user_id"].(float64))
+
 	startTime, err := time.Parse(time.RFC3339, req.StartTime)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid start_time format (RFC3339)"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid start_time"})
 	}
 	endTime, err := time.Parse(time.RFC3339, req.EndTime)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid end_time format (RFC3339)"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid end_time"})
 	}
 
 	exam := domain.Exam{
-		SubjectID:   req.SubjectID,
-		Title:       req.Title,
-		Description: req.Description,
-		Duration:    req.Duration,
-		StartTime:   startTime,
-		EndTime:     endTime,
+		SubjectID:     req.SubjectID,
+		Title:         req.Title,
+		Description:   req.Description,
+		Duration:      req.Duration,
+		StartTime:     startTime,
+		EndTime:       endTime,
 		TargetClasses: req.TargetClasses,
 		IsRandom:      req.IsRandom,
 		ShowScore:     req.ShowScore,
+		
+		// 2. ต้องนำ userID มาใส่ตรงนี้ครับ Error ถึงจะหาย
+		CreatedByID:   userID, 
 	}
 
 	if err := h.service.CreateExam(&exam, req.QuestionIDs); err != nil {
@@ -85,26 +91,33 @@ func (h *ExamHandler) CreateExam(c *fiber.Ctx) error {
 // @Security     ApiKeyAuth
 // @Success      200  {array} domain.Exam
 // @Router       /exams [get]
-
-// 3. อัปเดต GetAllExams (หัวใจสำคัญ!)
 func (h *ExamHandler) GetAllExams(c *fiber.Ctx) error {
-    // ดึง User จาก Token
-    userToken := c.Locals("user").(*jwt.Token)
-    claims := userToken.Claims.(jwt.MapClaims)
-    role := claims["role"].(string)
+	// 1. ดึงข้อมูล User จาก Token ครั้งเดียวที่ด้านบนสุด
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	role := claims["role"].(string)
+	userID := uint(claims["user_id"].(float64))
 
-	if role == "teacher" || role == "admin" {
-		exams, err := h.service.GetAllExams()
+	// 2. แยก Logic ตาม Role
+	if role == "admin" {
+		// Admin: ส่ง 0 ไปเพื่อบอกว่าขอทั้งหมด
+		exams, err := h.service.GetAllExams(0)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(exams)
+	} 
+	
+	if role == "teacher" {
+		// Teacher: ส่ง userID ตัวเองไปเพื่อกรองเฉพาะที่ตัวเองสร้าง
+		exams, err := h.service.GetAllExams(userID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.JSON(exams)
 	}
 
-	// กรณีนักเรียน
-	userID := uint(claims["user_id"].(float64))
-	
-	// เรียกใช้ฟังก์ชันที่เราเพิ่งสร้าง (Error "undefined" จะหายไป)
+	// Student: กรองตามห้องเรียน (ใช้ userID หาห้องเรียน)
 	exams, err := h.service.GetExamsForStudent(userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})

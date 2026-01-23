@@ -20,7 +20,7 @@ type Exam struct {
 	
 	IsRandom    bool           `gorm:"default:true" json:"is_random"`   // เปิด-ปิด สุ่ม
 	ShowScore   bool           `gorm:"default:true" json:"show_score"`  // เปิด-ปิด แสดงคะแนน
-
+	CreatedByID uint `json:"created_by_id"` 
 	// Relation: ชุดนี้มีข้อสอบอะไรบ้าง
 	Questions   []Question `gorm:"many2many:exam_questions;" json:"questions,omitempty"`
 }

@@ -18,13 +18,19 @@ func (r *examRepo) Create(exam *domain.Exam) error {
 	return r.db.Create(exam).Error
 }
 
-func (r *examRepo) FindAll() ([]domain.Exam, error) {
+func (r *examRepo) FindAll(creatorID uint) ([]domain.Exam, error) {
 	var exams []domain.Exam
-	// Preload Subject เพื่อให้รู้ว่าเป็นวิชาอะไร
-	err := r.db.Preload("Subject").
-		Preload("Questions"). // <--- เพิ่มบรรทัดนี้ เพื่อให้นับจำนวนข้อได้
-		Order("created_at desc").
-		Find(&exams).Error
+	
+	db := r.db.Preload("Subject").Preload("Questions").Order("created_at desc")
+
+	// --- เพิ่มเงื่อนไข ---
+	// ถ้าส่ง creatorID มา (มากกว่า 0) ให้กรอง
+	if creatorID > 0 {
+		db = db.Where("created_by_id = ?", creatorID)
+	}
+	// ------------------
+
+	err := db.Find(&exams).Error
 	return exams, err
 }
 
