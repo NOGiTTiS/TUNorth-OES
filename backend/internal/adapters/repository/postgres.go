@@ -36,7 +36,6 @@ func NewPostgresDB(config DBConfig) (*gorm.DB, error) {
 		// เปิด Logger เพื่อดู SQL Query ใน Console (เหมาะกับตอน Dev)
 		Logger: logger.Default.LogMode(logger.Info),
 	})
-	
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
@@ -45,17 +44,18 @@ func NewPostgresDB(config DBConfig) (*gorm.DB, error) {
 	// 3. Auto Migrate: สั่งให้ GORM สร้างตารางให้อัตโนมัติถ้ายังไม่มี
 	// เราจะใส่ Model User ที่เพิ่งสร้างเข้าไป
 	log.Println("Running Auto Migration...")
-    
-    // --- แก้ไขตรงนี้ครับ ---
-    err = db.AutoMigrate(
-        &domain.User{},
-        &domain.Subject{},
-        &domain.Question{},
-        &domain.Choice{},
-        &domain.Exam{},
-        &domain.ExamAttempt{},
-        &domain.ExamAnswer{},
-    )
+
+	// --- แก้ไขตรงนี้ครับ ---
+	err = db.AutoMigrate(
+		&domain.User{},
+		&domain.Subject{},
+		&domain.Question{},
+		&domain.Choice{},
+		&domain.Exam{},
+		&domain.ExamAttempt{},
+		&domain.ExamAnswer{},
+		&domain.SystemSetting{}, // Added SystemSetting
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}

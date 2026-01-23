@@ -29,6 +29,8 @@ import { authService } from "@/services/auth.service"
 import { useAuthStore } from "@/store/useAuthStore"
 import { UserInfo } from "@/types/auth"
 import Link from "next/link"
+import { useSystemSettings } from "@/hooks/use-system-settings"
+import Image from "next/image"
 
 const formSchema = z.object({
   username: z.string().min(1, { message: "กรุณากรอกชื่อผู้ใช้" }),
@@ -81,14 +83,30 @@ export default function LoginPage() {
       setLoading(false)
     }
   }
+  const { settings } = useSystemSettings()
+
   return (
     <div className="flex h-screen items-center justify-center bg-slate-50">
       <Card className="w-[350px] shadow-lg border-t-4 border-t-blue-600">
         <CardHeader className="space-y-1 text-center">
+          {settings?.logo_url && (
+            <div className="flex justify-center mb-4">
+              <div className="relative h-16 w-16">
+                <Image
+                  src={settings.logo_url}
+                  alt="Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </div>
+          )}
           <CardTitle className="text-2xl font-bold text-blue-900">
-            เข้าสู่ระบบ
+            {settings?.system_name || "เข้าสู่ระบบ"}
           </CardTitle>
-          <CardDescription>TUNorth-OES | ระบบจัดสอบออนไลน์</CardDescription>
+          <CardDescription>
+            {settings?.system_description || "TUNorth-OES | ระบบจัดสอบออนไลน์"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>

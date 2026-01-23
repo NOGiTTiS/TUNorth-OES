@@ -79,14 +79,19 @@ func main() {
 	examHandler := handler.NewExamHandler(examService)
 
 	// Attempt Dependency
-    attemptRepo := repository.NewAttemptRepository(db)
-    // สังเกตว่าเราส่ง examRepo เข้าไปด้วย เพื่อให้ Service ไปดึงเฉลยมาตรวจได้
-    attemptService := services.NewAttemptService(attemptRepo, examRepo) 
-    attemptHandler := handler.NewAttemptHandler(attemptService)
+	attemptRepo := repository.NewAttemptRepository(db)
+	// สังเกตว่าเราส่ง examRepo เข้าไปด้วย เพื่อให้ Service ไปดึงเฉลยมาตรวจได้
+	attemptService := services.NewAttemptService(attemptRepo, examRepo)
+	attemptHandler := handler.NewAttemptHandler(attemptService)
 
 	// Cloudinary
-    cloudService, _ := gateway.NewCloudinaryService() // Error handling จริงๆ ควรทำดีกว่านี้
-    uploadHandler := handler.NewUploadHandler(cloudService)
+	cloudService, _ := gateway.NewCloudinaryService() // Error handling จริงๆ ควรทำดีกว่านี้
+	uploadHandler := handler.NewUploadHandler(cloudService)
+
+	// System Setting Dependency
+	systemSettingRepo := repository.NewSystemSettingRepository(db)
+	systemSettingService := services.NewSystemSettingService(systemSettingRepo)
+	systemSettingHandler := handler.NewSystemSettingHandler(systemSettingService)
 
 	// Setup Fiber App
 	app := fiber.New(fiber.Config{
@@ -148,20 +153,20 @@ func main() {
 	questions.Post("/bulk", questionHandler.BulkCreateQuestions)
 
 	// Exam Routes
-    exams := api.Group("/exams")
-    exams.Use(jwtMiddleware)
-    exams.Post("/", examHandler.CreateExam) 
-    exams.Get("/", examHandler.GetAllExams)
-    exams.Get("/:id", examHandler.GetExamByID)
+	exams := api.Group("/exams")
+	exams.Use(jwtMiddleware)
+	exams.Post("/", examHandler.CreateExam)
+	exams.Get("/", examHandler.GetAllExams)
+	exams.Get("/:id", examHandler.GetExamByID)
 	exams.Put("/:id", examHandler.UpdateExam)
 	exams.Delete("/:id", examHandler.DeleteExam)
 
 	// Attempt Routes
-    attempts := api.Group("/attempts")
-    attempts.Use(jwtMiddleware)
+	attempts := api.Group("/attempts")
+	attempts.Use(jwtMiddleware)
 	attempts.Post("/start", attemptHandler.StartExam)
-    attempts.Post("/submit", attemptHandler.SubmitExam)
-    attempts.Get("/history", attemptHandler.GetHistory)
+	attempts.Post("/submit", attemptHandler.SubmitExam)
+	attempts.Get("/history", attemptHandler.GetHistory)
 	attempts.Get("/exam/:examId", attemptHandler.GetExamResults)
 
 	// User Routes
@@ -171,10 +176,17 @@ func main() {
 	users.Post("/", userHandler.CreateUser)
 	users.Put("/:id", userHandler.UpdateUser)
 	users.Delete("/:id", userHandler.DeleteUser)
-	users.Post("/bulk", userHandler.BulkCreateUsers) 
+	users.Post("/bulk", userHandler.BulkCreateUsers)
 
 	// Upload Route (ต้อง Login)
-    api.Post("/upload", jwtMiddleware, uploadHandler.UploadImage)
+	api.Post("/upload", jwtMiddleware, uploadHandler.UploadImage)
+
+	// Settings Routes
+	settings := api.Group("/settings")
+	settings.Get("/public", systemSettingHandler.GetPublicSettings)
+	settings.Use(jwtMiddleware)
+	settings.Get("/", systemSettingHandler.GetSettings)
+	settings.Put("/", systemSettingHandler.UpdateSettings)
 
 	// Test Route
 	app.Get("/", func(c *fiber.Ctx) error {
