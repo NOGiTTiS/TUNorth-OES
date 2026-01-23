@@ -36,8 +36,14 @@ export default function ExamResultsPage({ params }: { params: Promise<{ examId: 
                  <TableRow key={r.ID}>
                    <TableCell>{i + 1}</TableCell>
                    <TableCell>
-                      {/* ต้องแก้ Type Frontend ให้มี User ด้วย หรือใช้ any ไปก่อนถ้าขี้เกียจแก้ Type */}
-                      {(r as any).User?.username || "Unknown"} 
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                            {(r as any).user?.first_name} {(r as any).user?.last_name}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                            {(r as any).user?.username || "Unknown"}
+                        </span>
+                      </div> 
                    </TableCell> 
                    <TableCell>{format(new Date(r.end_time!), "d MMM HH:mm", { locale: th })}</TableCell>
                    <TableCell className="text-right font-bold text-blue-600">
