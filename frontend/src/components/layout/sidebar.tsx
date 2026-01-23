@@ -106,9 +106,16 @@ export function Sidebar({ className }: SidebarProps) {
             />
           </div>
         )}
-        <span className="text-lg font-bold text-primary truncate">
-          {settings?.system_name || "TUNorth-OES"}
-        </span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-lg font-bold text-primary truncate leading-tight">
+            {settings?.system_name || "TUNorth-OES"}
+          </span>
+          {settings?.system_description && (
+            <span className="text-xs text-secondary truncate">
+              {settings.system_description}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto py-4">

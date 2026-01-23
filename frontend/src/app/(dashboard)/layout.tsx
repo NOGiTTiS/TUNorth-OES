@@ -82,7 +82,12 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
+    <div
+      className="flex h-screen w-full overflow-hidden"
+      style={{
+        background: `linear-gradient(135deg, var(--gradient-start, #f8fafc), var(--gradient-end, #f8fafc))`,
+      }}
+    >
       {/* 1. Sidebar สำหรับ Desktop */}
       {/* สำคัญ: hidden (ซ่อนในมือถือ) md:block (โชว์ในจอใหญ่) */}
       <aside className="hidden md:flex w-64 flex-col border-r bg-white h-full shrink-0">

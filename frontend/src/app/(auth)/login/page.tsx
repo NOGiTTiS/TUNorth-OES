@@ -86,7 +86,12 @@ export default function LoginPage() {
   const { settings } = useSystemSettings()
 
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-50">
+    <div
+      className="flex h-screen items-center justify-center"
+      style={{
+        background: `linear-gradient(135deg, var(--gradient-start, #f8fafc), var(--gradient-end, #f8fafc))`,
+      }}
+    >
       <Card className="w-[350px] shadow-lg border-t-4 border-t-primary">
         <CardHeader className="space-y-1 text-center">
           {settings?.logo_url && (
