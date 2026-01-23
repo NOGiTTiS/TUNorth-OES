@@ -10,7 +10,7 @@ import (
 type ExamAttempt struct {
 	gorm.Model
 	UserID    uint      `gorm:"not null;index" json:"user_id"`
-	User      User      `gorm:"foreignKey:UserID" json:"-"`
+	User      User      `gorm:"foreignKey:UserID" json:"user"` 
 	ExamID    uint      `gorm:"not null;index" json:"exam_id"`
 	Exam      Exam      `gorm:"foreignKey:ExamID" json:"exam"`
 	
