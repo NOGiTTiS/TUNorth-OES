@@ -15,8 +15,8 @@ type IExamRepository interface {
 	Create(exam *domain.Exam) error
 	FindAll(creatorID uint) ([]domain.Exam, error)
 	FindByID(id uint) (*domain.Exam, error)
-	AddQuestions(examID uint, questionIDs []uint) error  // เพิ่มข้อสอบเข้าชุด
-	FindByClass(classRoom string) ([]domain.Exam, error) // หาตามห้องเรียน
+	AddQuestions(examID uint, questionIDs []uint) error // เพิ่มข้อสอบเข้าชุด
+	FindByClass(classID uint) ([]domain.Exam, error)    // หาตามห้องเรียน
 	Update(exam *domain.Exam, questionIDs []uint) error
 	Delete(id uint) error
 }

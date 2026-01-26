@@ -54,6 +54,7 @@ func NewPostgresDB(config DBConfig) (*gorm.DB, error) {
 		&domain.Exam{},
 		&domain.ExamAttempt{},
 		&domain.ExamAnswer{},
+		&domain.Class{},         // Added Class
 		&domain.SystemSetting{}, // Added SystemSetting
 	)
 	if err != nil {

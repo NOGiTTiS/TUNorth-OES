@@ -57,14 +57,14 @@ func (r *examRepo) AddQuestions(examID uint, questionIDs []uint) error {
 }
 
 // เพิ่มฟังก์ชันหาข้อสอบตามห้อง
-func (r *examRepo) FindByClass(classRoom string) ([]domain.Exam, error) {
+func (r *examRepo) FindByClass(classID uint) ([]domain.Exam, error) {
 	var exams []domain.Exam
-	// SQL: WHERE '4.1' = ANY(target_classes)
-	// เป็น Syntax เฉพาะของ Postgres ในการหาค่าใน Array
+	// Join with the many-to-many table (exam_target_classes is the default GORM name for Exam <-> Class)
 	err := r.db.Preload("Subject").
-		Preload("Questions"). // <--- เพิ่มบรรทัดนี้
-		Where("? = ANY(target_classes)", classRoom).
-		Order("created_at desc").
+		Preload("Questions").
+		Joins("JOIN exam_target_classes ON exam_target_classes.exam_id = exams.id").
+		Where("exam_target_classes.class_id = ?", classID).
+		Order("exams.created_at desc").
 		Find(&exams).Error
 	return exams, err
 }
@@ -73,22 +73,26 @@ func (r *examRepo) Update(exam *domain.Exam, questionIDs []uint) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 
 		// 1. แก้ไขส่วนนี้: เปลี่ยนจาก Updates(exam) เป็น map
-		// เพื่อบังคับให้บันทึกค่า false ของ IsRandom และ ShowScore
 		if err := tx.Model(exam).Updates(map[string]interface{}{
-			"title":          exam.Title,
-			"description":    exam.Description,
-			"subject_id":     exam.SubjectID,
-			"duration":       exam.Duration,
-			"start_time":     exam.StartTime,
-			"end_time":       exam.EndTime,
-			"target_classes": exam.TargetClasses,
-			"is_random":      exam.IsRandom,  // ส่ง false ก็จะบันทึก
-			"show_score":     exam.ShowScore, // ส่ง false ก็จะบันทึก
+			"title":       exam.Title,
+			"description": exam.Description,
+			"subject_id":  exam.SubjectID,
+			"duration":    exam.Duration,
+			"start_time":  exam.StartTime,
+			"end_time":    exam.EndTime,
+			// "target_classes": handled via association below
+			"is_random":  exam.IsRandom,
+			"show_score": exam.ShowScore,
 		}).Error; err != nil {
 			return err
 		}
 
-		// 2. อัปเดตรายการข้อสอบ (ส่วนนี้เหมือนเดิม ไม่ต้องแก้)
+		// 2. อัปเดต Classes (Many-to-Many)
+		if err := tx.Model(exam).Association("TargetClasses").Replace(exam.TargetClasses); err != nil {
+			return err
+		}
+
+		// 3. อัปเดตรายการข้อสอบ (ส่วนนี้เหมือนเดิม)
 		var questions []domain.Question
 		for _, qID := range questionIDs {
 			questions = append(questions, domain.Question{Model: gorm.Model{ID: qID}})

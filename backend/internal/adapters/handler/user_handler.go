@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strconv"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/domain"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/ports"
@@ -37,13 +38,12 @@ type CreateUserRequest struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 	Role      string `json:"role"`
-	ClassRoom string `json:"class_room"`
+	ClassID   uint   `json:"class_id"` // เปลี่ยนจาก ClassRoom string
 }
 
 type BulkCreateUserRequest struct {
-    Users []CreateUserRequest `json:"users"`
+	Users []CreateUserRequest `json:"users"`
 }
-
 
 func NewUserHandler(service ports.IUserService) *UserHandler {
 	return &UserHandler{
@@ -168,7 +168,7 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Role:      domain.UserRole(req.Role),
-		ClassRoom: req.ClassRoom,
+		ClassID:   &req.ClassID,
 	}
 
 	if err := h.userService.CreateUser(&user); err != nil {
@@ -190,18 +190,18 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 	req := new(CreateUserRequest)
-	
+
 	if err := c.BodyParser(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
 	user := domain.User{
 		// Username ปกติจะไม่ให้แก้กันง่ายๆ หรือแล้วแต่ Policy (ในที่นี้เราไม่เอาไป update)
-		Password:  req.Password, 
+		Password:  req.Password,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Role:      domain.UserRole(req.Role),
-		ClassRoom: req.ClassRoom,
+		ClassID:   &req.ClassID,
 	}
 
 	if err := h.userService.UpdateUser(uint(id), &user); err != nil {
@@ -222,7 +222,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 // @Router       /users/{id} [delete]
 func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	// TODO: ควรเช็คด้วยว่า User ที่กำลังลบ ไม่ใช่ตัวเอง และคนลบต้องเป็น Admin
-	
+
 	id, _ := strconv.Atoi(c.Params("id"))
 	if err := h.userService.DeleteUser(uint(id)); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -239,29 +239,29 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 // @Security     ApiKeyAuth
 // @Router       /users/bulk [post]
 func (h *UserHandler) BulkCreateUsers(c *fiber.Ctx) error {
-    req := new(BulkCreateUserRequest)
-    if err := c.BodyParser(req); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
-    }
+	req := new(BulkCreateUserRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
+	}
 
-    var users []domain.User
-    for _, uReq := range req.Users {
-        users = append(users, domain.User{
-            Username:  uReq.Username,
-            Password:  uReq.Password,
-            FirstName: uReq.FirstName,
-            LastName:  uReq.LastName,
-            Role:      domain.UserRole(uReq.Role),
-            ClassRoom: uReq.ClassRoom,
-        })
-    }
+	var users []domain.User
+	for _, uReq := range req.Users {
+		users = append(users, domain.User{
+			Username:  uReq.Username,
+			Password:  uReq.Password,
+			FirstName: uReq.FirstName,
+			LastName:  uReq.LastName,
+			Role:      domain.UserRole(uReq.Role),
+			ClassID:   &uReq.ClassID,
+		})
+	}
 
-    if err := h.userService.CreateUsersBulk(users); err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-    }
+	if err := h.userService.CreateUsersBulk(users); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
 
-    return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-        "message": "Users imported successfully",
-        "count":   len(users),
-    })
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "Users imported successfully",
+		"count":   len(users),
+	})
 }

@@ -84,12 +84,14 @@ func (s *examService) GetExamsForStudent(userID uint) ([]domain.Exam, error) {
 	if err != nil {
 		return nil, err
 	}
-	if user.ClassRoom == "" {
+	// Check ClassID (pointer)
+	if user.ClassID == nil {
+		// ถ้าไม่มีห้องเรียน (Null) ก็ไม่เจอข้อสอบหรอก หรือจะ return error ก็ได้
 		return nil, errors.New("student has no class assigned")
 	}
 
 	// 2. ค้นหาข้อสอบที่เปิดให้ห้องนั้นสอบ
-	return s.repo.FindByClass(user.ClassRoom)
+	return s.repo.FindByClass(*user.ClassID)
 }
 
 func (s *examService) UpdateExam(id uint, exam *domain.Exam, questionIDs []uint) error {

@@ -69,6 +69,11 @@ func main() {
 	subjectService := services.NewSubjectService(subjectRepo)
 	subjectHandler := handler.NewSubjectHandler(subjectService)
 
+	// Class Dependency
+	classRepo := repository.NewClassRepository(db)
+	classService := services.NewClassService(classRepo)
+	classHandler := handler.NewClassHandler(classService)
+
 	// System Setting Dependency (Move Up)
 	systemSettingRepo := repository.NewSystemSettingRepository(db)
 	systemSettingService := services.NewSystemSettingService(systemSettingRepo)
@@ -143,6 +148,15 @@ func main() {
 	subjects.Post("/", subjectHandler.CreateSubject) // ในอนาคตควรใส่ Middleware เช็ค Admin
 	subjects.Put("/:id", subjectHandler.UpdateSubject)
 	subjects.Delete("/:id", subjectHandler.DeleteSubject)
+
+	// Class Routes
+	classes := api.Group("/classes")
+	classes.Use(jwtMiddleware)
+	classes.Get("/", classHandler.GetAllClasses)
+	classes.Get("/:id", classHandler.GetClassByID)
+	classes.Post("/", classHandler.CreateClass) // Future: Admin only
+	classes.Put("/:id", classHandler.UpdateClass)
+	classes.Delete("/:id", classHandler.DeleteClass)
 
 	// Question Routes
 	questions := api.Group("/questions")

@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/domain"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/ports"
+	"gorm.io/gorm"
 )
 
 type ExamHandler struct {
@@ -20,16 +21,16 @@ func NewExamHandler(service ports.IExamService) *ExamHandler {
 
 // DTO สำหรับรับข้อมูล
 type CreateExamRequest struct {
-	SubjectID     uint     `json:"subject_id"`
-	Title         string   `json:"title"`
-	Description   string   `json:"description"`
-	Duration      int      `json:"duration"`                                       // นาที
-	StartTime     string   `json:"start_time" example:"2026-03-01T09:00:00+07:00"` // รับเป็น String ISO8601
-	EndTime       string   `json:"end_time" example:"2026-03-01T12:00:00+07:00"`
-	QuestionIDs   []uint   `json:"question_ids"` // รายการ ID ข้อสอบที่จะเอามาใส่
-	TargetClasses []string `json:"target_classes"`
-	IsRandom      bool     `json:"is_random"`
-	ShowScore     bool     `json:"show_score"`
+	SubjectID      uint   `json:"subject_id"`
+	Title          string `json:"title"`
+	Description    string `json:"description"`
+	Duration       int    `json:"duration"`                                       // นาที
+	StartTime      string `json:"start_time" example:"2026-03-01T09:00:00+07:00"` // รับเป็น String ISO8601
+	EndTime        string `json:"end_time" example:"2026-03-01T12:00:00+07:00"`
+	QuestionIDs    []uint `json:"question_ids"`     // รายการ ID ข้อสอบที่จะเอามาใส่
+	TargetClassIDs []uint `json:"target_class_ids"` // เปลี่ยนจาก []string target_classes
+	IsRandom       bool   `json:"is_random"`
+	ShowScore      bool   `json:"show_score"`
 }
 
 // CreateExam godoc
@@ -62,15 +63,22 @@ func (h *ExamHandler) CreateExam(c *fiber.Ctx) error {
 	}
 
 	exam := domain.Exam{
-		SubjectID:     req.SubjectID,
-		Title:         req.Title,
-		Description:   req.Description,
-		Duration:      req.Duration,
-		StartTime:     startTime,
-		EndTime:       endTime,
-		TargetClasses: req.TargetClasses,
-		IsRandom:      req.IsRandom,
-		ShowScore:     req.ShowScore,
+		SubjectID:   req.SubjectID,
+		Title:       req.Title,
+		Description: req.Description,
+		Duration:    req.Duration,
+		StartTime:   startTime,
+		EndTime:     endTime,
+		// Map IDs to Class objects for M:M association
+		TargetClasses: func() []domain.Class {
+			var classes []domain.Class
+			for _, id := range req.TargetClassIDs {
+				classes = append(classes, domain.Class{Model: gorm.Model{ID: id}})
+			}
+			return classes
+		}(),
+		IsRandom:  req.IsRandom,
+		ShowScore: req.ShowScore,
 
 		// 2. ต้องนำ userID มาใส่ตรงนี้ครับ Error ถึงจะหาย
 		CreatedByID: userID,
@@ -146,15 +154,21 @@ func (h *ExamHandler) UpdateExam(c *fiber.Ctx) error {
 	}
 
 	exam := domain.Exam{
-		SubjectID:     req.SubjectID,
-		Title:         req.Title,
-		Description:   req.Description,
-		Duration:      req.Duration,
-		StartTime:     startTime,
-		EndTime:       endTime,
-		TargetClasses: req.TargetClasses,
-		IsRandom:      req.IsRandom,
-		ShowScore:     req.ShowScore,
+		SubjectID:   req.SubjectID,
+		Title:       req.Title,
+		Description: req.Description,
+		Duration:    req.Duration,
+		StartTime:   startTime,
+		EndTime:     endTime,
+		TargetClasses: func() []domain.Class {
+			var classes []domain.Class
+			for _, id := range req.TargetClassIDs {
+				classes = append(classes, domain.Class{Model: gorm.Model{ID: id}})
+			}
+			return classes
+		}(),
+		IsRandom:  req.IsRandom,
+		ShowScore: req.ShowScore,
 	}
 
 	if err := h.service.UpdateExam(uint(id), &exam, req.QuestionIDs); err != nil {
