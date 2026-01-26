@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { BookOpen, CheckCircle, Shield, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSystemSettings } from "@/hooks/use-system-settings"
 
 export default function LandingPage() {
+  const { settings } = useSystemSettings();
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Navbar */}
       <header className="border-b py-4">
         <div className="container mx-auto px-6 flex justify-between items-center">
-          <div className="text-2xl font-bold text-blue-900 flex items-center gap-2">
-            <BookOpen className="h-8 w-8 text-blue-600" />
+          <div className="text-2xl font-bold text-primary flex items-center gap-2">
+            <BookOpen className="h-8 w-8 text-primary" />
             TUNorth-OES
           </div>
           <div className="space-x-4">
@@ -19,7 +21,7 @@ export default function LandingPage() {
                 <Button variant="outline">เข้าสู่ระบบ</Button>
              </Link>
              <Link href="/register">
-                <Button className="bg-blue-600 hover:bg-blue-700">สมัครสมาชิก</Button>
+                <Button className="bg-primary hover:bg-primary/90">สมัครสมาชิก</Button>
              </Link>
           </div>
         </div>
@@ -29,9 +31,9 @@ export default function LandingPage() {
       <main className="flex-1">
         <section className="py-20 bg-slate-50">
           <div className="container mx-auto px-6 text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+            <h1 className="text-4xl md:text-6xl font-bold text-secondary mb-6 leading-tight">
               ระบบจัดสอบออนไลน์ <br />
-              <span className="text-blue-600">โรงเรียนเตรียมอุดมศึกษา ภาคเหนือ</span>
+              <span className="text-primary">โรงเรียนเตรียมอุดมศึกษา ภาคเหนือ</span>
             </h1>
             <p className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
               แพลตฟอร์มการสอบที่ทันสมัย ใช้งานง่าย รองรับการสอบวัดผล
@@ -39,7 +41,7 @@ export default function LandingPage() {
             </p>
             <div className="flex justify-center gap-4">
               <Link href="/login">
-                <Button size="lg" className="text-lg px-8 py-6 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">
+                <Button size="lg" className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 shadow-lg shadow-blue-200">
                   เริ่มต้นใช้งาน
                 </Button>
               </Link>
@@ -74,7 +76,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-slate-900 text-slate-400 py-8">
         <div className="container mx-auto px-6 text-center">
-          <p>© 2026 TUNorth Online Examination System. All rights reserved.</p>
+          <p>{settings?.copyright}</p>
         </div>
       </footer>
     </div>

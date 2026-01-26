@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"log"
 
 	"github.com/nogittis/tunorth-oes-backend/internal/core/domain"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/ports"
@@ -43,20 +44,16 @@ func (s *questionService) CreateQuestion(question *domain.Question) error {
 }
 
 func (s *questionService) GetQuestionsBySubjectID(subjectID uint, requesterID uint, requesterRole string) ([]domain.Question, error) {
+	log.Printf("[QuestionService] GetQuestionsBySubjectID: subjectID=%d, requesterID=%d, role=%s\n", subjectID, requesterID, requesterRole)
+
 	// 1. Check Settings
 	settings, err := s.settingsService.GetSettings()
 	if err != nil {
-		// Default secure: Private
-		// If private, we should filter by created_by.
-		// NOTE: GetQuestionsBySubjectID in repo currently filters by SubjectID only.
-		// If we need to filter by creator, the Repo needs to support it or we filter in memory (not efficient) or we add a new Repo method.
-		// Let's check Repo. assuming Repo just GetBySubject.
-		// For consistency, I should update Repo to accept optional creatorID?
-		// Or simpler: GetAll and filter.
-		// Efficient way: Update Repo interface to FindBySubjectAndCreator(subjectID, creatorID).
-		// For now, let's keep it defined here, I will update Repo next.
-		return s.repo.FindBySubjectID(subjectID) // Fallback (or fail?)
+		log.Printf("[QuestionService] Failed to get settings: %v\n", err)
+		return s.repo.FindBySubjectID(subjectID) // Fallback to all
 	}
+
+	log.Printf("[QuestionService] Settings: TeacherShareQuestionBank=%v\n", settings.TeacherShareQuestionBank)
 
 	if requesterRole == "admin" {
 		return s.repo.FindBySubjectID(subjectID)
@@ -66,8 +63,11 @@ func (s *questionService) GetQuestionsBySubjectID(subjectID uint, requesterID ui
 		if settings.TeacherShareQuestionBank {
 			return s.repo.FindBySubjectID(subjectID)
 		} else {
-			// Requires Repo update to support filtering by creator
-			return s.repo.FindBySubjectIDAndCreator(subjectID, requesterID)
+			// Private mode: Show legacy questions (created_by_id = 0) + questions created by this teacher
+			log.Printf("[QuestionService] Private mode: Filtering by creatorID=%d (including legacy)\n", requesterID)
+			questions, err := s.repo.FindBySubjectIDAndCreatorOrLegacy(subjectID, requesterID)
+			log.Printf("[QuestionService] Found %d questions for creatorID=%d (including legacy)\n", len(questions), requesterID)
+			return questions, err
 		}
 	}
 

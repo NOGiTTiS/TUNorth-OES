@@ -14,6 +14,7 @@ type IQuestionRepository interface {
 	Create(question *domain.Question) error
 	FindBySubjectID(subjectID uint) ([]domain.Question, error)
 	FindBySubjectIDAndCreator(subjectID uint, creatorID uint) ([]domain.Question, error)
+	FindBySubjectIDAndCreatorOrLegacy(subjectID uint, creatorID uint) ([]domain.Question, error)
 	Delete(id uint) error
 	CreateBulk(questions []domain.Question) error
 	Update(id uint, question *domain.Question) error

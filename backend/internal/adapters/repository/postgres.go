@@ -60,6 +60,13 @@ func NewPostgresDB(config DBConfig) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 
+	// --- Legacy Data Migration REMOVED ---
+	// We no longer reassign legacy questions to Admin.
+	// Instead, the QuestionService will handle visibility:
+	// - Legacy questions (created_by_id = 0) are visible to everyone
+	// - New questions are visible based on privacy settings
+	// --------------------------------------------------
+
 	log.Println("Database connection established and migrated successfully.")
 	return db, nil
 }

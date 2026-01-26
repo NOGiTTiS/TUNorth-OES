@@ -20,15 +20,13 @@ func (r *examRepo) Create(exam *domain.Exam) error {
 
 func (r *examRepo) FindAll(creatorID uint) ([]domain.Exam, error) {
 	var exams []domain.Exam
-	
+
 	db := r.db.Preload("Subject").Preload("Questions").Order("created_at desc")
 
-	// --- เพิ่มเงื่อนไข ---
-	// ถ้าส่ง creatorID มา (มากกว่า 0) ให้กรอง
+	// Private mode: Filter by creatorID OR legacy exams (created_by_id = 0)
 	if creatorID > 0 {
-		db = db.Where("created_by_id = ?", creatorID)
+		db = db.Where("created_by_id = ? OR created_by_id = 0 OR created_by_id IS NULL", creatorID)
 	}
-	// ------------------
 
 	err := db.Find(&exams).Error
 	return exams, err
@@ -48,7 +46,7 @@ func (r *examRepo) AddQuestions(examID uint, questionIDs []uint) error {
 	// ใช้ Association Mode ของ GORM จัดการ Many-to-Many
 	var exam domain.Exam
 	exam.ID = examID
-	
+
 	// สร้าง Slice ของ Question struct เพื่อส่งให้ GORM
 	var questions []domain.Question
 	for _, qID := range questionIDs {
@@ -73,7 +71,7 @@ func (r *examRepo) FindByClass(classRoom string) ([]domain.Exam, error) {
 
 func (r *examRepo) Update(exam *domain.Exam, questionIDs []uint) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		
+
 		// 1. แก้ไขส่วนนี้: เปลี่ยนจาก Updates(exam) เป็น map
 		// เพื่อบังคับให้บันทึกค่า false ของ IsRandom และ ShowScore
 		if err := tx.Model(exam).Updates(map[string]interface{}{

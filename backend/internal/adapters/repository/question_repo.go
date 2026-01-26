@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"log"
+
 	"github.com/nogittis/tunorth-oes-backend/internal/core/domain"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/ports"
 	"gorm.io/gorm"
@@ -27,17 +29,27 @@ func (r *questionRepo) FindBySubjectID(subjectID uint) ([]domain.Question, error
 
 func (r *questionRepo) FindBySubjectIDAndCreator(subjectID uint, creatorID uint) ([]domain.Question, error) {
 	var questions []domain.Question
-	// Filter by SubjectID AND CreatedByID
-	// Note: CreatedByID might not exist in Question struct if we didn't add it explicitly?
-	// Let's check Domain. Usually GORM adds CreatedAt, UpdatedAt, DeletedAt.
-	// But CreatedBy (User) needs to be defined.
-	// Assume it exists or I should add it?
-	// Wait, standard gorm.Model doesn't have CreatedByID.
-	// If domain.Question doesn't have CreatedByID, we can't filter.
-	// Let's check domain/question.go first.
-	// If it's missing, I'll need to add it.
-	// For now, I will write the query assuming it exists, and I will verify domain next.
+	log.Printf("[QuestionRepo] FindBySubjectIDAndCreator: subjectID=%d, creatorID=%d\n", subjectID, creatorID)
+
 	err := r.db.Preload("Choices").Where("subject_id = ? AND created_by_id = ?", subjectID, creatorID).Find(&questions).Error
+
+	log.Printf("[QuestionRepo] Found %d questions matching criteria\n", len(questions))
+	return questions, err
+}
+
+// FindBySubjectIDAndCreatorOrLegacy returns:
+// - Questions created by the specified creator (created_by_id = creatorID)
+// - Legacy questions (created_by_id = 0 or NULL)
+func (r *questionRepo) FindBySubjectIDAndCreatorOrLegacy(subjectID uint, creatorID uint) ([]domain.Question, error) {
+	var questions []domain.Question
+	log.Printf("[QuestionRepo] FindBySubjectIDAndCreatorOrLegacy: subjectID=%d, creatorID=%d\n", subjectID, creatorID)
+
+	// Query: (subject_id = ? AND (created_by_id = ? OR created_by_id = 0 OR created_by_id IS NULL))
+	err := r.db.Preload("Choices").
+		Where("subject_id = ? AND (created_by_id = ? OR created_by_id = 0 OR created_by_id IS NULL)", subjectID, creatorID).
+		Find(&questions).Error
+
+	log.Printf("[QuestionRepo] Found %d questions (own + legacy)\n", len(questions))
 	return questions, err
 }
 
