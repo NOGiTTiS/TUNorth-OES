@@ -51,8 +51,14 @@ func (r *attemptRepo) FindActiveAttempt(userID, examID uint) (*domain.ExamAttemp
 }
 
 func (r *attemptRepo) FindByExamID(examID uint) ([]domain.ExamAttempt, error) {
-    var attempts []domain.ExamAttempt
-    // Preload User เพื่อเอาชื่อนักเรียน
-    err := r.db.Preload("User").Where("exam_id = ? AND is_submitted = ?", examID, true).Order("score desc").Find(&attempts).Error
-    return attempts, err
+	var attempts []domain.ExamAttempt
+	// Preload User เพื่อเอาชื่อนักเรียน
+	err := r.db.Preload("User").Where("exam_id = ? AND is_submitted = ?", examID, true).Order("score desc").Find(&attempts).Error
+	return attempts, err
+}
+
+func (r *attemptRepo) CountSubmitted() (int64, error) {
+	var count int64
+	err := r.db.Model(&domain.ExamAttempt{}).Where("is_submitted = ?", true).Count(&count).Error
+	return count, err
 }

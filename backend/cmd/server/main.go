@@ -100,6 +100,10 @@ func main() {
 	cloudService, _ := gateway.NewCloudinaryService() // Error handling จริงๆ ควรทำดีกว่านี้
 	uploadHandler := handler.NewUploadHandler(cloudService)
 
+	// Dashboard Dependency
+	dashboardService := services.NewDashboardService(userRepo, examRepo, attemptRepo)
+	dashboardHandler := handler.NewDashboardHandler(dashboardService)
+
 	// Setup Fiber App
 	app := fiber.New(fiber.Config{
 		AppName: "TUNorth-OES Backend v1.0",
@@ -203,6 +207,11 @@ func main() {
 	settings.Use(jwtMiddleware)
 	settings.Get("/", systemSettingHandler.GetSettings)
 	settings.Put("/", systemSettingHandler.UpdateSettings)
+
+	// Dashboard Routes
+	dashboard := api.Group("/dashboard")
+	dashboard.Use(jwtMiddleware)
+	dashboard.Get("/stats", dashboardHandler.GetStats)
 
 	// Test Route
 	app.Get("/", func(c *fiber.Ctx) error {

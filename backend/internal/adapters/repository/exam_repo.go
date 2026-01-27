@@ -112,3 +112,9 @@ func (r *examRepo) Delete(id uint) error {
 	// ลบ Exam (Cascade จะลบ ExamQuestions ให้เองถ้าตั้งไว้ หรือ GORM จัดการให้)
 	return r.db.Delete(&domain.Exam{}, id).Error
 }
+func (r *examRepo) CountActive() (int64, error) {
+	var count int64
+	// Active Exams: For now, just count all exams. Later can check start/end time.
+	err := r.db.Model(&domain.Exam{}).Count(&count).Error
+	return count, err
+}

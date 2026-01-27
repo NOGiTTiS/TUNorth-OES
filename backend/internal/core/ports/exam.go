@@ -19,4 +19,5 @@ type IExamRepository interface {
 	FindByClass(classID uint) ([]domain.Exam, error)    // หาตามห้องเรียน
 	Update(exam *domain.Exam, questionIDs []uint) error
 	Delete(id uint) error
+	CountActive() (int64, error)
 }

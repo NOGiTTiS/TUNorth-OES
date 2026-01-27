@@ -76,3 +76,8 @@ func (r *userRepo) CreateBulk(users []domain.User) error {
 	// GORM Batch Insert
 	return r.db.Create(&users).Error
 }
+func (r *userRepo) CountAll() (int64, error) {
+	var count int64
+	err := r.db.Model(&domain.User{}).Where("role = ?", "student").Count(&count).Error
+	return count, err
+}

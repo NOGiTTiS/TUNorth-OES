@@ -22,5 +22,6 @@ type IAttemptRepository interface {
 	FindByUser(userID uint) ([]domain.ExamAttempt, error)
 	// ฟังก์ชันช่วยเช็คว่าสอบไปหรือยัง
 	FindActiveAttempt(userID, examID uint) (*domain.ExamAttempt, error)
-	FindByExamID(examID uint) ([]domain.ExamAttempt, error) 
+	FindByExamID(examID uint) ([]domain.ExamAttempt, error)
+	CountSubmitted() (int64, error)
 }
