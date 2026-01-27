@@ -21,7 +21,7 @@ func (r *examRepo) Create(exam *domain.Exam) error {
 func (r *examRepo) FindAll(creatorID uint) ([]domain.Exam, error) {
 	var exams []domain.Exam
 
-	db := r.db.Preload("Subject").Preload("Questions").Order("created_at desc")
+	db := r.db.Preload("Subject").Preload("Questions").Preload("TargetClasses").Order("created_at desc")
 
 	// Private mode: Filter by creatorID OR legacy exams (created_by_id = 0)
 	if creatorID > 0 {
@@ -38,6 +38,7 @@ func (r *examRepo) FindByID(id uint) (*domain.Exam, error) {
 	err := r.db.Preload("Subject").
 		Preload("Questions").
 		Preload("Questions.Choices").
+		Preload("TargetClasses").
 		First(&exam, id).Error
 	return &exam, err
 }
@@ -62,6 +63,7 @@ func (r *examRepo) FindByClass(classID uint) ([]domain.Exam, error) {
 	// Join with the many-to-many table (exam_target_classes is the default GORM name for Exam <-> Class)
 	err := r.db.Preload("Subject").
 		Preload("Questions").
+		Preload("TargetClasses").
 		Joins("JOIN exam_target_classes ON exam_target_classes.exam_id = exams.id").
 		Where("exam_target_classes.class_id = ?", classID).
 		Order("exams.created_at desc").

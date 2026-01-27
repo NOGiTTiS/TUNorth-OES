@@ -7,6 +7,7 @@ type ClassRepository interface {
 	Create(class *domain.Class) error
 	FindAll() ([]domain.Class, error)
 	FindByID(id uint) (*domain.Class, error)
+	FindByName(name string) (*domain.Class, error)
 	Update(class *domain.Class) error
 	Delete(id uint) error
 }
@@ -16,6 +17,7 @@ type ClassService interface {
 	CreateClass(name, description string) (*domain.Class, error)
 	GetAllClasses() ([]domain.Class, error)
 	GetClassByID(id uint) (*domain.Class, error)
+	GetClassByName(name string) (*domain.Class, error)
 	UpdateClass(id uint, name, description string) (*domain.Class, error)
 	DeleteClass(id uint) error
 }

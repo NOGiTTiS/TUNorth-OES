@@ -239,7 +239,7 @@ export default function ExamRoomPage({ params }: PageProps) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-600 mb-4" />
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
         <p className="text-gray-500">
             {isBanned ? "กำลังส่งข้อสอบและบันทึกการทุจริต..." : "กำลังประมวลผล..."}
         </p>
@@ -258,7 +258,7 @@ export default function ExamRoomPage({ params }: PageProps) {
           {result.score !== -1 ? (
               <>
                 <p className="text-gray-500 mb-2">คะแนนของคุณ</p>
-                <div className="text-6xl font-bold text-blue-600 mb-4">
+                <div className="text-6xl font-bold text-primary mb-4">
                     {result.score} <span className="text-2xl text-gray-400">/ {result.max}</span>
                 </div>
               </>
@@ -349,7 +349,7 @@ export default function ExamRoomPage({ params }: PageProps) {
             <CardHeader>
               <CardTitle className="text-lg flex flex-col gap-3">
                  <div className="flex gap-3">
-                    <span className="bg-blue-100 text-blue-800 w-8 h-8 flex items-center justify-center rounded-full text-sm shrink-0">
+                    <span className="bg-primary text-white w-8 h-8 flex items-center justify-center rounded-full text-sm shrink-0">
                       {index + 1}
                     </span>
                     <span>{q.content}</span>
@@ -377,7 +377,7 @@ export default function ExamRoomPage({ params }: PageProps) {
                     key={c.ID} 
                     onClick={() => !isBanned && handleSelectAnswer(q.ID, c.ID!)}
                     className={`flex items-start space-x-2 border p-3 rounded-lg transition-colors ${
-                      answers[q.ID] === c.ID ? 'bg-blue-50 border-blue-300' : 'hover:bg-slate-50'
+                      answers[q.ID] === c.ID ? 'bg-primary/5 border-primary' : 'hover:bg-slate-50'
                     } ${isBanned ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
                   >
                     <RadioGroupItem value={c.ID!.toString()} id={`c-${c.ID}`} className="mt-1" />
@@ -407,9 +407,9 @@ export default function ExamRoomPage({ params }: PageProps) {
 
       <div className="lg:w-72 hidden lg:block">
         <div className="sticky top-6 space-y-4">
-          <Card className="border-blue-200 bg-blue-50">
+          <Card className="border-primary bg-primary/5">
             <CardContent className="pt-6 text-center">
-              <div className="flex items-center justify-center gap-2 text-blue-800 mb-2">
+              <div className="flex items-center justify-center gap-2 text-primary mb-2">
                 <Clock className="h-5 w-5" />
                 <span className="font-semibold">เวลาที่เหลือ</span>
               </div>
@@ -435,7 +435,7 @@ export default function ExamRoomPage({ params }: PageProps) {
                     key={q.ID}
                     href={`#q-${q.ID}`}
                     className={`h-8 w-8 flex items-center justify-center rounded text-xs font-medium transition-colors border
-                      ${answers[q.ID] ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 hover:bg-gray-100'}
+                      ${answers[q.ID] ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 hover:bg-gray-100'}
                     `}
                   >
                     {i + 1}

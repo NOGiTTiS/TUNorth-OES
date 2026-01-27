@@ -7,7 +7,7 @@ export default function ExamRoomLayout({
     <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* Header เรียบๆ แสดงแค่ชื่อระบบ */}
       <header className="h-16 bg-white border-b shadow-sm flex items-center px-6 justify-between z-10">
-        <div className="font-bold text-xl text-blue-900">TUNorth-OES | ห้องสอบ</div>
+        <div className="font-bold text-xl text-primary">TUNorth-OES | ห้องสอบ</div>
         <div className="text-sm text-gray-500">โหมดการสอบแบบ Focus</div>
       </header>
 

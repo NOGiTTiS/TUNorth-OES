@@ -215,28 +215,26 @@ export default function ExamListPage() {
                   <div className="flex items-start gap-2 pt-1 border-t">
                     <Users className="h-4 w-4 text-gray-400 mt-0.5" />
                     <div className="flex flex-wrap gap-1">
-                      {(exam as any).target_classes &&
-                      (exam as any).target_classes.length > 0 ? (
-                        (exam as any).target_classes
-                          .slice(0, 3)
-                          .map((cls: string) => (
-                            <span
-                              key={cls}
-                              className="bg-slate-100 text-slate-600 px-1.5 rounded text-xs"
-                            >
-                              {cls}
-                            </span>
-                          ))
+                      {exam.target_classes && exam.target_classes.length > 0 ? (
+                        exam.target_classes.slice(0, 3).map((cls) => (
+                          <span
+                            key={cls.ID}
+                            className="bg-slate-100 text-slate-600 px-1.5 rounded text-xs"
+                          >
+                            {cls.name}
+                          </span>
+                        ))
                       ) : (
                         <span className="text-xs text-gray-400">
                           ไม่ระบุห้อง
                         </span>
                       )}
-                      {(exam as any).target_classes?.length > 3 && (
-                        <span className="text-xs text-gray-400">
-                          +{(exam as any).target_classes.length - 3}
-                        </span>
-                      )}
+                      {exam.target_classes?.length &&
+                        exam.target_classes.length > 3 && (
+                          <span className="text-xs text-gray-400">
+                            +{exam.target_classes.length - 3}
+                          </span>
+                        )}
                     </div>
                   </div>
                 </CardContent>

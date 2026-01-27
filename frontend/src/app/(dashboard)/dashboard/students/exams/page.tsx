@@ -85,7 +85,7 @@ export default function StudentExamListPage() {
                 const { status, label, color, canEnter } = getExamStatus(exam);
                 
                 return (
-                  <Card key={exam.ID} className={`flex flex-col hover:shadow-md transition-shadow ${status === 'active' ? 'border-blue-500 border-2' : ''}`}>
+                  <Card key={exam.ID} className={`flex flex-col hover:shadow-md transition-shadow ${status === 'active' ? 'border-primary border-2' : ''}`}>
                       <CardHeader className="pb-3">
                           <div className="flex justify-between items-start mb-2">
                                <Badge variant="outline" className="font-normal">
@@ -119,7 +119,7 @@ export default function StudentExamListPage() {
                       <CardFooter className="pt-0">
                         {canEnter ? (
                             <Link href={`/exam-room/${exam.ID}`} className="w-full">
-                                <Button className="w-full bg-blue-600 hover:bg-blue-700 font-bold shadow-blue-200 shadow-lg">
+                                <Button className="w-full bg-primary hover:bg-primary/80 font-bold shadow-primary/20 shadow-lg">
                                     <PlayCircle className="mr-2 h-4 w-4" /> เริ่มทำข้อสอบ
                                 </Button>
                             </Link>

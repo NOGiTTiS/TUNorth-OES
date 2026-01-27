@@ -28,7 +28,8 @@ type LoginRequest struct {
 // --------------------------------------------------
 
 type UserHandler struct {
-	userService ports.IUserService
+	userService  ports.IUserService
+	classService ports.ClassService
 }
 
 // DTO สำหรับรับข้อมูล Create/Update
@@ -38,16 +39,17 @@ type CreateUserRequest struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 	Role      string `json:"role"`
-	ClassID   uint   `json:"class_id"` // เปลี่ยนจาก ClassRoom string
+	ClassRoom string `json:"class_room"` // เปลี่ยนจาก ClassID uint เป็น ClassRoom string
 }
 
 type BulkCreateUserRequest struct {
 	Users []CreateUserRequest `json:"users"`
 }
 
-func NewUserHandler(service ports.IUserService) *UserHandler {
+func NewUserHandler(service ports.IUserService, classService ports.ClassService) *UserHandler {
 	return &UserHandler{
-		userService: service,
+		userService:  service,
+		classService: classService,
 	}
 }
 
@@ -162,13 +164,27 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
+	// Resolve Class ID
+	var classID *uint
+	if req.ClassRoom != "" {
+		class, err := h.classService.GetClassByName(req.ClassRoom)
+		if err != nil || class == nil {
+			// Create if not exists
+			class, err = h.classService.CreateClass(req.ClassRoom, "")
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not create class"})
+			}
+		}
+		classID = &class.ID
+	}
+
 	user := domain.User{
 		Username:  req.Username,
 		Password:  req.Password,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Role:      domain.UserRole(req.Role),
-		ClassID:   &req.ClassID,
+		ClassID:   classID,
 	}
 
 	if err := h.userService.CreateUser(&user); err != nil {
@@ -195,13 +211,26 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
+	// Resolve Class ID
+	var classID *uint
+	if req.ClassRoom != "" {
+		class, err := h.classService.GetClassByName(req.ClassRoom)
+		if err != nil || class == nil {
+			class, err = h.classService.CreateClass(req.ClassRoom, "")
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not create class"})
+			}
+		}
+		classID = &class.ID
+	}
+
 	user := domain.User{
 		// Username ปกติจะไม่ให้แก้กันง่ายๆ หรือแล้วแต่ Policy (ในที่นี้เราไม่เอาไป update)
 		Password:  req.Password,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Role:      domain.UserRole(req.Role),
-		ClassID:   &req.ClassID,
+		ClassID:   classID,
 	}
 
 	if err := h.userService.UpdateUser(uint(id), &user); err != nil {
@@ -246,13 +275,26 @@ func (h *UserHandler) BulkCreateUsers(c *fiber.Ctx) error {
 
 	var users []domain.User
 	for _, uReq := range req.Users {
+		// Resolve Class ID for each user
+		var classID *uint
+		if uReq.ClassRoom != "" {
+			class, err := h.classService.GetClassByName(uReq.ClassRoom)
+			if err != nil || class == nil {
+				class, err = h.classService.CreateClass(uReq.ClassRoom, "")
+				if err != nil {
+					continue // Skip if error (or handle better)
+				}
+			}
+			classID = &class.ID
+		}
+
 		users = append(users, domain.User{
 			Username:  uReq.Username,
 			Password:  uReq.Password,
 			FirstName: uReq.FirstName,
 			LastName:  uReq.LastName,
 			Role:      domain.UserRole(uReq.Role),
-			ClassID:   &uReq.ClassID,
+			ClassID:   classID,
 		})
 	}
 

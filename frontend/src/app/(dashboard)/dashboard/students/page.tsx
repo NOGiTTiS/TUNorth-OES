@@ -181,7 +181,9 @@ export default function UserManagementPage() {
                   </TableCell>
                   <TableCell>{getRoleBadge(u.role)}</TableCell>
                   <TableCell>
-                    {u.class_room ? (
+                    {u.class?.name ? (
+                      <Badge variant="outline">{u.class.name}</Badge>
+                    ) : u.class_room ? (
                       <Badge variant="outline">{u.class_room}</Badge>
                     ) : (
                       "-"

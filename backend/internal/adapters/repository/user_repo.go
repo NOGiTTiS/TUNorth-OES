@@ -34,15 +34,15 @@ func (r *userRepo) CreateUser(user *domain.User) error {
 func (r *userRepo) FindUserByUsername(username string) (*domain.User, error) {
 	var user domain.User
 	// ค้นหา record แรกที่ username ตรงกัน
-	result := r.db.Where("username = ?", username).First(&user)
-	
+	result := r.db.Preload("Class").Where("username = ?", username).First(&user)
+
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
 		}
 		return nil, result.Error
 	}
-	
+
 	return &user, nil
 }
 
@@ -52,7 +52,7 @@ func (r *userRepo) FindAll() ([]domain.User, error) {
 	// Omit("Password") อาจจะไม่ทำงานถ้า field ใน struct ไม่ได้ตั้งเป็น pointer หรือ scanner
 	// แต่ใน GORM v2 เราใช้ Smart Select หรือเลือกเฉพาะ field ได้
 	// เอาแบบง่ายก่อนคือดึงมาหมด แล้ว JSON tag "-" ใน domain.User จะช่วยซ่อน password ให้เองครับ
-	err := r.db.Order("created_at desc").Find(&users).Error
+	err := r.db.Preload("Class").Order("created_at desc").Find(&users).Error
 	return users, err
 }
 
@@ -63,7 +63,7 @@ func (r *userRepo) Delete(id uint) error {
 
 func (r *userRepo) FindByID(id uint) (*domain.User, error) {
 	var user domain.User
-	err := r.db.First(&user, id).Error
+	err := r.db.Preload("Class").First(&user, id).Error
 	return &user, err
 }
 
@@ -73,6 +73,6 @@ func (r *userRepo) Update(user *domain.User) error {
 }
 
 func (r *userRepo) CreateBulk(users []domain.User) error {
-    // GORM Batch Insert
-    return r.db.Create(&users).Error
+	// GORM Batch Insert
+	return r.db.Create(&users).Error
 }

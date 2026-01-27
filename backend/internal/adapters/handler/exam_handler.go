@@ -8,29 +8,33 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/domain"
 	"github.com/nogittis/tunorth-oes-backend/internal/core/ports"
-	"gorm.io/gorm"
 )
 
 type ExamHandler struct {
-	service ports.IExamService
+	service      ports.IExamService
+	classService ports.ClassService
 }
 
-func NewExamHandler(service ports.IExamService) *ExamHandler {
-	return &ExamHandler{service: service}
+func NewExamHandler(service ports.IExamService, classService ports.ClassService) *ExamHandler {
+	return &ExamHandler{
+		service:      service,
+		classService: classService,
+	}
 }
 
 // DTO สำหรับรับข้อมูล
 type CreateExamRequest struct {
-	SubjectID      uint   `json:"subject_id"`
-	Title          string `json:"title"`
-	Description    string `json:"description"`
-	Duration       int    `json:"duration"`                                       // นาที
-	StartTime      string `json:"start_time" example:"2026-03-01T09:00:00+07:00"` // รับเป็น String ISO8601
-	EndTime        string `json:"end_time" example:"2026-03-01T12:00:00+07:00"`
-	QuestionIDs    []uint `json:"question_ids"`     // รายการ ID ข้อสอบที่จะเอามาใส่
-	TargetClassIDs []uint `json:"target_class_ids"` // เปลี่ยนจาก []string target_classes
-	IsRandom       bool   `json:"is_random"`
-	ShowScore      bool   `json:"show_score"`
+	SubjectID   uint   `json:"subject_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Duration    int    `json:"duration"`                                       // นาที
+	StartTime   string `json:"start_time" example:"2026-03-01T09:00:00+07:00"` // รับเป็น String ISO8601
+	EndTime     string `json:"end_time" example:"2026-03-01T12:00:00+07:00"`
+	QuestionIDs []uint `json:"question_ids"` // รายการ ID ข้อสอบที่จะเอามาใส่
+	// TargetClassIDs []uint `json:"target_class_ids"` // เปลี่ยนจาก []string target_classes
+	TargetClasses []string `json:"target_classes"` // รับเป็นชื่อห้องเรียนเลย (เช่น "6.1", "6.2")
+	IsRandom      bool     `json:"is_random"`
+	ShowScore     bool     `json:"show_score"`
 }
 
 // CreateExam godoc
@@ -62,26 +66,31 @@ func (h *ExamHandler) CreateExam(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid end_time"})
 	}
 
-	exam := domain.Exam{
-		SubjectID:   req.SubjectID,
-		Title:       req.Title,
-		Description: req.Description,
-		Duration:    req.Duration,
-		StartTime:   startTime,
-		EndTime:     endTime,
-		// Map IDs to Class objects for M:M association
-		TargetClasses: func() []domain.Class {
-			var classes []domain.Class
-			for _, id := range req.TargetClassIDs {
-				classes = append(classes, domain.Class{Model: gorm.Model{ID: id}})
+	// Map Class Names to Class Objects (Create if not exists)
+	var targetClasses []domain.Class
+	for _, className := range req.TargetClasses {
+		class, err := h.classService.GetClassByName(className)
+		if err != nil || class == nil {
+			// ถ้าไม่เจอ ให้สร้างใหม่เลย
+			class, err = h.classService.CreateClass(className, "")
+			if err != nil {
+				continue // Skip if create fails (shouldn't happen)
 			}
-			return classes
-		}(),
-		IsRandom:  req.IsRandom,
-		ShowScore: req.ShowScore,
+		}
+		targetClasses = append(targetClasses, *class)
+	}
 
-		// 2. ต้องนำ userID มาใส่ตรงนี้ครับ Error ถึงจะหาย
-		CreatedByID: userID,
+	exam := domain.Exam{
+		SubjectID:     req.SubjectID,
+		Title:         req.Title,
+		Description:   req.Description,
+		Duration:      req.Duration,
+		StartTime:     startTime,
+		EndTime:       endTime,
+		TargetClasses: targetClasses,
+		IsRandom:      req.IsRandom,
+		ShowScore:     req.ShowScore,
+		CreatedByID:   userID,
 	}
 
 	if err := h.service.CreateExam(&exam, req.QuestionIDs); err != nil {
@@ -153,22 +162,29 @@ func (h *ExamHandler) UpdateExam(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid end_time"})
 	}
 
-	exam := domain.Exam{
-		SubjectID:   req.SubjectID,
-		Title:       req.Title,
-		Description: req.Description,
-		Duration:    req.Duration,
-		StartTime:   startTime,
-		EndTime:     endTime,
-		TargetClasses: func() []domain.Class {
-			var classes []domain.Class
-			for _, id := range req.TargetClassIDs {
-				classes = append(classes, domain.Class{Model: gorm.Model{ID: id}})
+	// Map Class Names to Class Objects (Create if not exists)
+	var targetClasses []domain.Class
+	for _, className := range req.TargetClasses {
+		class, err := h.classService.GetClassByName(className)
+		if err != nil || class == nil {
+			class, err = h.classService.CreateClass(className, "")
+			if err != nil {
+				continue
 			}
-			return classes
-		}(),
-		IsRandom:  req.IsRandom,
-		ShowScore: req.ShowScore,
+		}
+		targetClasses = append(targetClasses, *class)
+	}
+
+	exam := domain.Exam{
+		SubjectID:     req.SubjectID,
+		Title:         req.Title,
+		Description:   req.Description,
+		Duration:      req.Duration,
+		StartTime:     startTime,
+		EndTime:       endTime,
+		TargetClasses: targetClasses,
+		IsRandom:      req.IsRandom,
+		ShowScore:     req.ShowScore,
 	}
 
 	if err := h.service.UpdateExam(uint(id), &exam, req.QuestionIDs); err != nil {

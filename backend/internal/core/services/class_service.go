@@ -45,6 +45,10 @@ func (s *classService) GetClassByID(id uint) (*domain.Class, error) {
 	return s.classRepo.FindByID(id)
 }
 
+func (s *classService) GetClassByName(name string) (*domain.Class, error) {
+	return s.classRepo.FindByName(name)
+}
+
 func (s *classService) UpdateClass(id uint, name, description string) (*domain.Class, error) {
 	class, err := s.classRepo.FindByID(id)
 	if err != nil {

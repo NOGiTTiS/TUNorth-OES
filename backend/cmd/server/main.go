@@ -62,17 +62,18 @@ func main() {
 	// User Dependency
 	userRepo := repository.NewUserRepository(db)
 	userService := services.NewUserService(userRepo, os.Getenv("JWT_SECRET"))
-	userHandler := handler.NewUserHandler(userService)
+
+	// ต้องย้าย Class ขึ้นมาก่อน User เพราะ UserHandler ต้องใช้ ClassService
+	classRepo := repository.NewClassRepository(db)
+	classService := services.NewClassService(classRepo)
+	classHandler := handler.NewClassHandler(classService)
+
+	userHandler := handler.NewUserHandler(userService, classService)
 
 	// Subject Dependency
 	subjectRepo := repository.NewSubjectRepository(db)
 	subjectService := services.NewSubjectService(subjectRepo)
 	subjectHandler := handler.NewSubjectHandler(subjectService)
-
-	// Class Dependency
-	classRepo := repository.NewClassRepository(db)
-	classService := services.NewClassService(classRepo)
-	classHandler := handler.NewClassHandler(classService)
 
 	// System Setting Dependency (Move Up)
 	systemSettingRepo := repository.NewSystemSettingRepository(db)
@@ -87,7 +88,7 @@ func main() {
 	// Exam Dependency
 	examRepo := repository.NewExamRepository(db)
 	examService := services.NewExamService(examRepo, userRepo, systemSettingService)
-	examHandler := handler.NewExamHandler(examService)
+	examHandler := handler.NewExamHandler(examService, classService)
 
 	// Attempt Dependency
 	attemptRepo := repository.NewAttemptRepository(db)

@@ -38,6 +38,18 @@ func (r *classRepository) FindByID(id uint) (*domain.Class, error) {
 	return &class, nil
 }
 
+func (r *classRepository) FindByName(name string) (*domain.Class, error) {
+	var class domain.Class
+	err := r.db.Where("name = ?", name).First(&class).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &class, nil
+}
+
 func (r *classRepository) Update(class *domain.Class) error {
 	return r.db.Save(class).Error
 }
